@@ -1,359 +1,328 @@
-// testTraderApi.cpp : ¶¨Òå¿ØÖÆÌ¨Ó¦ÓÃ³ÌĞòµÄÈë¿Úµã¡£
-//
-#include <stdio.h>
-#include <string.h>
-#include <cstdlib>
-#include <errno.h>
 #include <iostream>
+#include <string.h>
 
 using namespace std;
-#include "./TraderAPI/ThostFtdcTraderApi.h"
-//#include "TraderSpi.h"
 
-// Ïß³Ì¿ØÖÆÏà¹Ø
-#include <pthread.h>
-#include <semaphore.h>
-#include <unistd.h>
+#include "../TraderAPI/ThostFtdcTraderApi.h"
+#include "TraderSpi.h"
+#include <time.h>
 
+#pragma warning(disable : 4996)
 
-// »á»°²ÎÊı
-TThostFtdcFrontIDType	FRONT_ID;	//Ç°ÖÃ±àºÅ
-TThostFtdcSessionIDType	SESSION_ID;	//»á»°±àºÅ
-TThostFtdcOrderRefType	ORDER_REF;	//±¨µ¥ÒıÓÃ
+// USER_APIå‚æ•°
+extern CThostFtdcTraderApi* pUserApi;
+
+// é…ç½®å‚æ•°
+//extern char FRONT_ADDR[];		// å‰ç½®åœ°å€
+//extern char BROKER_ID[];		// ç»çºªå…¬å¸ä»£ç 
+extern char INVESTOR_ID[];		// æŠ•èµ„è€…ä»£ç 
+//extern char PASSWORD[];			// ç”¨æˆ·å¯†ç 
+extern char INSTRUMENT_ID[];	// åˆçº¦ä»£ç 
+extern TThostFtdcPriceType	LIMIT_PRICE;	// ä»·æ ¼
+extern TThostFtdcDirectionType	DIRECTION;	// ä¹°å–æ–¹å‘
+
+// è¯·æ±‚ç¼–å·
+int iRequestID=0;
+
+// ä¼šè¯å‚æ•°
+TThostFtdcFrontIDType	FRONT_ID;	//å‰ç½®ç¼–å·
+TThostFtdcSessionIDType	SESSION_ID;	//ä¼šè¯ç¼–å·
+TThostFtdcOrderRefType	ORDER_REF;	//æŠ¥å•å¼•ç”¨
+
+TThostFtdcBrokerIDType	BROKER_ID = "9999";				// ç»çºªå…¬å¸ä»£ç 
+TThostFtdcInvestorIDType INVESTOR_ID = "110623";			// æ³¨æ„è¾“å…¥ä½ è‡ªå·±çš„simnowä»¿çœŸæŠ•èµ„è€…ä»£ç 
+TThostFtdcPasswordType  PASSWORD = "xialei1981";			// æ³¨æ„è¾“å…¥ä½ è‡ªå·±çš„simnowä»¿çœŸç”¨æˆ·å¯†ç 
+
 time_t lOrderTime;
 time_t lOrderOkTime;
 
-
-//export LD_LIBRARY_PATH=/sboot/TraderAPI:$LD_LIBRARY_PATH 
-class CTraderSpi : public CThostFtdcTraderSpi
+void CTraderSpi::OnFrontConnected()
 {
-public:
-	CTraderSpi (CThostFtdcTraderApi *pUserApi) : m_pUserApi (pUserApi) {printf("CTraderSpi:called.\n");} 
+	cerr << "--->>> " << "OnFrontConnected" << endl;
+	///ç”¨æˆ·ç™»å½•è¯·æ±‚
+	ReqUserLogin();
+}
 
-	~CTraderSpi(){}
-    
-	
-	///µ±¿Í»§¶ËÓë½»Ò×ºóÌ¨½¨Á¢ÆğÍ¨ĞÅÁ¬½ÓÊ±£¨»¹Î´µÇÂ¼Ç°£©£¬¸Ã·½·¨±»µ÷ÓÃ¡£
-	virtual void OnFrontConnected(){
-		printf("OnFrontConnected:called.\n");
-		static int i = 0;
-		// ÔÚµÇ³öºóÏµÍ³»áÖØĞÂµ÷ÓÃOnFrontConnected£¬ÕâÀï¼òµ¥ÅĞ¶Ï²¢ºöÂÔµÚ1´ÎÖ®ºóµÄËùÓĞµ÷ÓÃ¡£
-		if (i++==0) {
-        	printf("OnFrontConnected:called.\n");
-			//sem_post(&sem);
-		}
-	    //ÓÃ»§µÇÂ¼ÇëÇó
-	    ReqUserLogin();
-	}
-
-	void ReqUserLogin()
-	{
-		CThostFtdcReqUserLoginField reqUserLogin ; 
-		memset(&reqUserLogin, 0, sizeof(reqUserLogin));
-		strcpy(reqUserLogin.BrokerID,BROKER_ID);
-		strcpy(reqUserLogin.UserID,INVESTOR_ID);
-		strcpy(reqUserLogin.Password,PASSWORD); 
-		printf ("ReqUserLogin.\n");            
-        int iResult = m_pUserApi->ReqUserLogin(&reqUserLogin, ++iRequestID);         
-        cerr << "--->>> ·¢ËÍÓÃ»§µÇÂ¼ÇëÇó: "<<iRequestID << ((iResult == 0) ? "³É¹¦" : "Ê§°Ü") << endl;
-	}
-
-	virtual void OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
+void CTraderSpi::ReqUserLogin()
+{
+	CThostFtdcReqUserLoginField req;
+	//memset(&req, 0, sizeof(req));
+	strcpy(req.BrokerID, BROKER_ID);
+	strcpy(req.UserID, INVESTOR_ID);
+	strcpy(req.Password, PASSWORD);
+	int iResult = pUserApi->ReqUserLogin(&req, ++iRequestID);
+	cerr << "--->>> å‘é€ç”¨æˆ·ç™»å½•è¯·æ±‚: " << ((iResult == 0) ? "æˆåŠŸ" : "å¤±è´¥") << endl;
+}
+/**
+void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
 		CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-    {
-		cerr << "--->>> " << "OnRspUserLogin:"<<pRspInfo->ErrorID<<pRspUserLogin->FrontID<<","<<pRspUserLogin->SessionID<<","<<pRspUserLogin->SHFETime<< endl;
-		if(pRspInfo->ErrorID != 0){
-		   //µÇÂ¼Ê§°Ü£¬¿Í»§¶ËĞèÒª½øĞĞ´íÎó´¦Àí
-		   printf("Failed to login, errorcode = %d errormsg= %s requestid = %d chain = %d", pRspInfo->ErrorID, pRspInfo->ErrorMsg, nRequestID, bIsLast);
-		   exit(-1);
-		}
-
-		if (bIsLast && !IsErrorRspInfo(pRspInfo))
-		{
-		// ±£´æ»á»°²ÎÊı
+{
+	cerr << "--->>> " << "OnRspUserLogin" << endl;
+	if (bIsLast && !IsErrorRspInfo(pRspInfo))
+	{
+		// ä¿å­˜ä¼šè¯å‚æ•°
 		FRONT_ID = pRspUserLogin->FrontID;
 		SESSION_ID = pRspUserLogin->SessionID;
 		int iNextOrderRef = atoi(pRspUserLogin->MaxOrderRef);
-		cerr << "--->>> " << "FRONT_ID:"<<FRONT_ID<<"," <<SESSION_ID<<iNextOrderRef<<","<<bIsLast<< endl;
 		iNextOrderRef++;
 		sprintf(ORDER_REF, "%d", iNextOrderRef);
-		///»ñÈ¡µ±Ç°½»Ò×ÈÕ
-		cerr << "--->>> »ñÈ¡µ±Ç°½»Ò×ÈÕ = " << pUserApi->GetTradingDay() << endl;
-		///Í¶×ÊÕß½áËã½á¹ûÈ·ÈÏ
+		///è·å–å½“å‰äº¤æ˜“æ—¥
+		cerr << "--->>> è·å–å½“å‰äº¤æ˜“æ—¥ = " << pUserApi->GetTradingDay() << endl;
+		///æŠ•èµ„è€…ç»“ç®—ç»“æœç¡®è®¤
 		ReqSettlementInfoConfirm();
-		}
-
 	}
+}
 
-	virtual void ReqSettlementInfoConfirm()
+void CTraderSpi::ReqSettlementInfoConfirm()
+{
+	CThostFtdcSettlementInfoConfirmField req;
+	memset(&req, 0, sizeof(req));
+	strcpy(req.BrokerID, BROKER_ID);
+	strcpy(req.InvestorID, INVESTOR_ID);
+	int iResult = pUserApi->ReqSettlementInfoConfirm(&req, ++iRequestID);
+	cerr << "--->>> æŠ•èµ„è€…ç»“ç®—ç»“æœç¡®è®¤: " << ((iResult == 0) ? "æˆåŠŸ" : "å¤±è´¥") << endl;
+}
+
+void CTraderSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pSettlementInfoConfirm, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	cerr << "--->>> " << "OnRspSettlementInfoConfirm" << endl;
+	if (bIsLast && !IsErrorRspInfo(pRspInfo))
 	{
-	   	CThostFtdcSettlementInfoConfirmField req;
-	    memset(&req, 0, sizeof(req));
-		strcpy(req.BrokerID, BROKER_ID);
-		strcpy(req.InvestorID, INVESTOR_ID);
-		int iResult = m_pUserApi->ReqSettlementInfoConfirm(&req, ++iRequestID);
-		cerr << "--->>> Í¶×ÊÕß½áËã½á¹ûÈ·ÈÏ: " << ((iResult == 0) ? "³É¹¦" : "Ê§°Ü") << endl;
+		///è¯·æ±‚æŸ¥è¯¢åˆçº¦
+		ReqQryInstrument();
 	}
+}
 
-	virtual void OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pSettlementInfoConfirm, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+void CTraderSpi::ReqQryInstrument()
+{
+	CThostFtdcQryInstrumentField req;
+	memset(&req, 0, sizeof(req));
+	strcpy(req.InstrumentID, INSTRUMENT_ID);
+	int iResult = pUserApi->ReqQryInstrument(&req, ++iRequestID);
+	cerr << "--->>> è¯·æ±‚æŸ¥è¯¢åˆçº¦: " << ((iResult == 0) ? "æˆåŠŸ" : "å¤±è´¥") << endl;
+}
+
+void CTraderSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	cerr << "--->>> " << "OnRspQryInstrument" << endl;
+	if (bIsLast && !IsErrorRspInfo(pRspInfo))
 	{
-		cerr << "--->>> " << "OnRspSettlementInfoConfirm" << endl;
-		if (bIsLast && !IsErrorRspInfo(pRspInfo))
+		///è¯·æ±‚æŸ¥è¯¢åˆçº¦
+		ReqQryTradingAccount();
+	}
+}
+
+void CTraderSpi::ReqQryTradingAccount()
+{
+	CThostFtdcQryTradingAccountField req;
+	memset(&req, 0, sizeof(req));
+	strcpy(req.BrokerID, BROKER_ID);
+	strcpy(req.InvestorID, INVESTOR_ID);
+	int iResult = pUserApi->ReqQryTradingAccount(&req, ++iRequestID);
+	cerr << "--->>> è¯·æ±‚æŸ¥è¯¢èµ„é‡‘è´¦æˆ·: " << ((iResult == 0) ? "æˆåŠŸ" : "å¤±è´¥") << endl;
+}
+
+void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAccount, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	cerr << "--->>> " << "OnRspQryTradingAccount" << endl;
+	if (bIsLast && !IsErrorRspInfo(pRspInfo))
+	{
+		///è¯·æ±‚æŸ¥è¯¢æŠ•èµ„è€…æŒä»“
+		ReqQryInvestorPosition();
+	}
+}
+
+void CTraderSpi::ReqQryInvestorPosition()
+{
+	CThostFtdcQryInvestorPositionField req;
+	memset(&req, 0, sizeof(req));
+	strcpy(req.BrokerID, BROKER_ID);
+	strcpy(req.InvestorID, INVESTOR_ID);
+	strcpy(req.InstrumentID, INSTRUMENT_ID);
+	int iResult = pUserApi->ReqQryInvestorPosition(&req, ++iRequestID);
+	cerr << "--->>> è¯·æ±‚æŸ¥è¯¢æŠ•èµ„è€…æŒä»“: " << ((iResult == 0) ? "æˆåŠŸ" : "å¤±è´¥") << endl;
+}
+
+void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInvestorPosition, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	cerr << "--->>> " << "OnRspQryInvestorPosition" << endl;
+	if (bIsLast && !IsErrorRspInfo(pRspInfo))
+	{
+		///æŠ¥å•å½•å…¥è¯·æ±‚
+		ReqOrderInsert();
+	}
+}
+
+void CTraderSpi::ReqOrderInsert()
+{
+	CThostFtdcInputOrderField req;
+	memset(&req, 0, sizeof(req));
+	///ç»çºªå…¬å¸ä»£ç 
+	strcpy(req.BrokerID, BROKER_ID);
+	///æŠ•èµ„è€…ä»£ç 
+	strcpy(req.InvestorID, INVESTOR_ID);
+	///åˆçº¦ä»£ç 
+	strcpy(req.InstrumentID, INSTRUMENT_ID);
+	///æŠ¥å•å¼•ç”¨
+	strcpy(req.OrderRef, ORDER_REF);
+	///ç”¨æˆ·ä»£ç 
+//	TThostFtdcUserIDType	UserID;
+	///æŠ¥å•ä»·æ ¼æ¡ä»¶: é™ä»·
+	req.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
+	///ä¹°å–æ–¹å‘: 
+	req.Direction = DIRECTION;
+	///ç»„åˆå¼€å¹³æ ‡å¿—: å¼€ä»“
+	req.CombOffsetFlag[0] = THOST_FTDC_OF_Open;
+	///ç»„åˆæŠ•æœºå¥—ä¿æ ‡å¿—
+	req.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
+	///ä»·æ ¼
+	req.LimitPrice = LIMIT_PRICE;
+	///æ•°é‡: 1
+	req.VolumeTotalOriginal = 1;
+	///æœ‰æ•ˆæœŸç±»å‹: å½“æ—¥æœ‰æ•ˆ
+	req.TimeCondition = THOST_FTDC_TC_GFD;
+	///GTDæ—¥æœŸ
+//	TThostFtdcDateType	GTDDate;
+	///æˆäº¤é‡ç±»å‹: ä»»ä½•æ•°é‡
+	req.VolumeCondition = THOST_FTDC_VC_AV;
+	///æœ€å°æˆäº¤é‡: 1
+	req.MinVolume = 1;
+	///è§¦å‘æ¡ä»¶: ç«‹å³
+	req.ContingentCondition = THOST_FTDC_CC_Immediately;
+	///æ­¢æŸä»·
+//	TThostFtdcPriceType	StopPrice;
+	///å¼ºå¹³åŸå› : éå¼ºå¹³
+	req.ForceCloseReason = THOST_FTDC_FCC_NotForceClose;
+	///è‡ªåŠ¨æŒ‚èµ·æ ‡å¿—: å¦
+	req.IsAutoSuspend = 0;
+	///ä¸šåŠ¡å•å…ƒ
+//	TThostFtdcBusinessUnitType	BusinessUnit;
+	///è¯·æ±‚ç¼–å·
+//	TThostFtdcRequestIDType	RequestID;
+	///ç”¨æˆ·å¼ºè¯„æ ‡å¿—: å¦
+	req.UserForceClose = 0;
+
+	lOrderTime=time(NULL);
+	int iResult = pUserApi->ReqOrderInsert(&req, ++iRequestID);
+	cerr << "--->>> æŠ¥å•å½•å…¥è¯·æ±‚: " << ((iResult == 0) ? "æˆåŠŸ" : "å¤±è´¥") << endl;
+}
+
+void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	cerr << "--->>> " << "OnRspOrderInsert" << endl;
+	IsErrorRspInfo(pRspInfo);
+}
+
+void CTraderSpi::ReqOrderAction(CThostFtdcOrderField *pOrder)
+{
+	static bool ORDER_ACTION_SENT = false;		//æ˜¯å¦å‘é€äº†æŠ¥å•
+	if (ORDER_ACTION_SENT)
+		return;
+
+	CThostFtdcInputOrderActionField req;
+	memset(&req, 0, sizeof(req));
+	///ç»çºªå…¬å¸ä»£ç 
+	strcpy(req.BrokerID, pOrder->BrokerID);
+	///æŠ•èµ„è€…ä»£ç 
+	strcpy(req.InvestorID, pOrder->InvestorID);
+	///æŠ¥å•æ“ä½œå¼•ç”¨
+//	TThostFtdcOrderActionRefType	OrderActionRef;
+	///æŠ¥å•å¼•ç”¨
+	strcpy(req.OrderRef, pOrder->OrderRef);
+	///è¯·æ±‚ç¼–å·
+//	TThostFtdcRequestIDType	RequestID;
+	///å‰ç½®ç¼–å·
+	req.FrontID = FRONT_ID;
+	///ä¼šè¯ç¼–å·
+	req.SessionID = SESSION_ID;
+	///äº¤æ˜“æ‰€ä»£ç 
+//	TThostFtdcExchangeIDType	ExchangeID;
+	///æŠ¥å•ç¼–å·
+//	TThostFtdcOrderSysIDType	OrderSysID;
+	///æ“ä½œæ ‡å¿—
+	req.ActionFlag = THOST_FTDC_AF_Delete;
+	///ä»·æ ¼
+//	TThostFtdcPriceType	LimitPrice;
+	///æ•°é‡å˜åŒ–
+//	TThostFtdcVolumeType	VolumeChange;
+	///ç”¨æˆ·ä»£ç 
+//	TThostFtdcUserIDType	UserID;
+	///åˆçº¦ä»£ç 
+	strcpy(req.InstrumentID, pOrder->InstrumentID);
+	lOrderTime=time(NULL);
+	int iResult = pUserApi->ReqOrderAction(&req, ++iRequestID);
+	cerr << "--->>> æŠ¥å•æ“ä½œè¯·æ±‚: " << ((iResult == 0) ? "æˆåŠŸ" : "å¤±è´¥") << endl;
+	ORDER_ACTION_SENT = true;
+}
+
+void CTraderSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pInputOrderAction, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	cerr << "--->>> " << "OnRspOrderAction" << endl;
+	IsErrorRspInfo(pRspInfo);
+}
+
+///æŠ¥å•é€šçŸ¥
+void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
+{
+	cerr << "--->>> " << "OnRtnOrder"  << endl;
+	lOrderOkTime=time(NULL);
+	time_t lTime=lOrderOkTime-lOrderTime;
+	cerr << "--->>> æŠ¥å•åˆ°æŠ¥å•é€šçŸ¥çš„æ—¶é—´å·® = " << lTime << endl;
+	if (IsMyOrder(pOrder))
+	{
+		if (IsTradingOrder(pOrder))
 		{
-			///ÇëÇó²éÑ¯ºÏÔ¼
-			ReqQryInstrument();
+			//ReqOrderAction(pOrder);
 		}
+		else if (pOrder->OrderStatus == THOST_FTDC_OST_Canceled)
+			cout << "--->>> æ’¤å•æˆåŠŸ" << endl;
 	}
-    ///ÇëÇó²éÑ¯ºÏÔ¼
-	virtual void ReqQryInstrument()
-	{
-		CThostFtdcQryInstrumentField req;
-		memset(&req, 0, sizeof(req));
-		strcpy(req.InstrumentID, INSTRUMENT_ID);
-		int iResult = m_pUserApi->ReqQryInstrument(&req, ++iRequestID);
-		cerr << "--->>> ÇëÇó²éÑ¯ºÏÔ¼: " << ((iResult == 0) ? "³É¹¦" : "Ê§°Ü") << endl;
-	}
-    ///ÇëÇó²éÑ¯ºÏÔ¼ÏìÓ¦
-	virtual void OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-	{
-		cerr << "--->>> " << "OnRspQryInstrument" <<nRequestID<< endl;
-		if (bIsLast && !IsErrorRspInfo(pRspInfo))
-		{
-			//cerr << "--->>> " << "DeliveryYear:" <<pInstrument->DeliveryYear<< endl;
-			
-			///ÇëÇó²éÑ¯ºÏÔ¼
-			ReqQryTradingAccount();
-		}
-	}
-    ///ÇëÇó²éÑ¯×Ê½ğÕË»§
-	virtual void ReqQryTradingAccount()
-	{
-		CThostFtdcQryTradingAccountField req;
-		memset(&req, 0, sizeof(req));
-		strcpy(req.BrokerID, BROKER_ID);
-		strcpy(req.InvestorID, INVESTOR_ID);
-		//strcpy(req.CurrencyID, "RMB");
-		sleep(1);
-		int iResult = m_pUserApi->ReqQryTradingAccount(&req, ++iRequestID);
-		cerr << "--->>> ÇëÇó²éÑ¯×Ê½ğÕË»§: " << ((iResult == 0) ? "³É¹¦" : "Ê§°Ü")<<iResult << endl;
-	}
-	///ÇëÇó²éÑ¯×Ê½ğÕË»§ÏìÓ¦
-	virtual void OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAccount, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-	{
-		cerr << "--->>> " << "OnRspQryTradingAccount:"<<pTradingAccount->PreDeposit << endl;
+}
+
+///æˆäº¤é€šçŸ¥
+void CTraderSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
+{
+	cerr << "--->>> " << "OnRtnTrade"  << endl;
+}
+
+void CTraderSpi:: OnFrontDisconnected(int nReason)
+{
+	cerr << "--->>> " << "OnFrontDisconnected" << endl;
+	cerr << "--->>> Reason = " << nReason << endl;
+}
 		
-		 
-		if (bIsLast && !IsErrorRspInfo(pRspInfo))
-		{
-			///ÇëÇó²éÑ¯Í¶×ÊÕß³Ö²Ö
-			sleep(1);
-			ReqQryInvestorPosition();
-		}
-	}
-    ///ÇëÇó²éÑ¯Í¶×ÊÕß³Ö²Ö
-	virtual void ReqQryInvestorPosition()
-	{
-		CThostFtdcQryInvestorPositionField req;
-		memset(&req, 0, sizeof(req));
-		strcpy(req.BrokerID, BROKER_ID);
-		strcpy(req.InvestorID, INVESTOR_ID);
-		strcpy(req.InstrumentID, INSTRUMENT_ID);
-		int iResult = pUserApi->ReqQryInvestorPosition(&req, ++iRequestID);
-		cerr << "--->>> ÇëÇó²éÑ¯Í¶×ÊÕß³Ö²Ö: " << ((iResult == 0) ? "³É¹¦" : "Ê§°Ü") << endl;
-	}
-    ///ÇëÇó²éÑ¯Í¶×ÊÕß³Ö²ÖÏìÓ¦
-	virtual void OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInvestorPosition, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-	{
-		cerr << "--->>> " << "OnRspQryInvestorPosition" << endl;
-		if (bIsLast && !IsErrorRspInfo(pRspInfo))
-		{
-			///±¨µ¥Â¼ÈëÇëÇó
-			ReqOrderInsert();
-		}
-	}
-    ///±¨µ¥Â¼ÈëÇëÇó
-	virtual void ReqOrderInsert()
-	{
-		CThostFtdcInputOrderField req;
-		memset(&req, 0, sizeof(req));
-		///¾­¼Í¹«Ë¾´úÂë
-		strcpy(req.BrokerID, BROKER_ID);
-		///Í¶×ÊÕß´úÂë
-		strcpy(req.InvestorID, INVESTOR_ID);
-		///ºÏÔ¼´úÂë
-		strcpy(req.InstrumentID, INSTRUMENT_ID);
-		///±¨µ¥ÒıÓÃ
-		strcpy(req.OrderRef, ORDER_REF);
-		///ÓÃ»§´úÂë
-	//	TThostFtdcUserIDType	UserID;
-		///±¨µ¥¼Û¸ñÌõ¼ş: ÏŞ¼Û
-		req.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
-		///ÂòÂô·½Ïò: 
-		req.Direction = DIRECTION;
-		///×éºÏ¿ªÆ½±êÖ¾: ¿ª²Ö
-		req.CombOffsetFlag[0] = THOST_FTDC_OF_Open;
-		///×éºÏÍ¶»úÌ×±£±êÖ¾
-		req.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
-		///¼Û¸ñ
-		req.LimitPrice = LIMIT_PRICE;
-		///ÊıÁ¿: 1
-		req.VolumeTotalOriginal = 1;
-		///ÓĞĞ§ÆÚÀàĞÍ: µ±ÈÕÓĞĞ§
-		req.TimeCondition = THOST_FTDC_TC_GFD;
-		///GTDÈÕÆÚ
-	//	TThostFtdcDateType	GTDDate;
-		///³É½»Á¿ÀàĞÍ: ÈÎºÎÊıÁ¿
-		req.VolumeCondition = THOST_FTDC_VC_AV;
-		///×îĞ¡³É½»Á¿: 1
-		req.MinVolume = 1;
-		///´¥·¢Ìõ¼ş: Á¢¼´
-		req.ContingentCondition = THOST_FTDC_CC_Immediately;
-		///Ö¹Ëğ¼Û
-	//	TThostFtdcPriceType	StopPrice;
-		///Ç¿Æ½Ô­Òò: ·ÇÇ¿Æ½
-		req.ForceCloseReason = THOST_FTDC_FCC_NotForceClose;
-		///×Ô¶¯¹ÒÆğ±êÖ¾: ·ñ
-		req.IsAutoSuspend = 0;
-		///ÒµÎñµ¥Ôª
-	//	TThostFtdcBusinessUnitType	BusinessUnit;
-		///ÇëÇó±àºÅ
-	//	TThostFtdcRequestIDType	RequestID;
-		///ÓÃ»§Ç¿ÆÀ±êÖ¾: ·ñ
-		req.UserForceClose = 0;
+void CTraderSpi::OnHeartBeatWarning(int nTimeLapse)
+{
+	cerr << "--->>> " << "OnHeartBeatWarning" << endl;
+	cerr << "--->>> nTimerLapse = " << nTimeLapse << endl;
+}
 
-		lOrderTime=time(NULL);
-		int iResult = pUserApi->ReqOrderInsert(&req, ++iRequestID);
-		cerr << "--->>> ±¨µ¥Â¼ÈëÇëÇó: " << ((iResult == 0) ? "³É¹¦" : "Ê§°Ü") << endl;
-	}
+void CTraderSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+{
+	cerr << "--->>> " << "OnRspError" << endl;
+	IsErrorRspInfo(pRspInfo);
+}
 
-	void OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-	{
-		cerr << "--->>> " << "OnRspOrderInsert" << endl;
-		IsErrorRspInfo(pRspInfo);
-	}
+bool CTraderSpi::IsErrorRspInfo(CThostFtdcRspInfoField *pRspInfo)
+{
+	// å¦‚æœErrorID != 0, è¯´æ˜æ”¶åˆ°äº†é”™è¯¯çš„å“åº”
+	bool bResult = ((pRspInfo) && (pRspInfo->ErrorID != 0));
+	if (bResult)
+		cerr << "--->>> ErrorID=" << pRspInfo->ErrorID << ", ErrorMsg=" << pRspInfo->ErrorMsg << endl;
+	return bResult;
+}
 
-	void ReqOrderAction(CThostFtdcOrderField *pOrder)
-	{
-		static bool ORDER_ACTION_SENT = false;		//ÊÇ·ñ·¢ËÍÁË±¨µ¥
-		if (ORDER_ACTION_SENT)
-			return;
+bool CTraderSpi::IsMyOrder(CThostFtdcOrderField *pOrder)
+{
+	return ((pOrder->FrontID == FRONT_ID) &&
+			(pOrder->SessionID == SESSION_ID) &&
+			(strcmp(pOrder->OrderRef, ORDER_REF) == 0));
+}
 
-		CThostFtdcInputOrderActionField req;
-		memset(&req, 0, sizeof(req));
-		///¾­¼Í¹«Ë¾´úÂë
-		strcpy(req.BrokerID, pOrder->BrokerID);
-		///Í¶×ÊÕß´úÂë
-		strcpy(req.InvestorID, pOrder->InvestorID);
-		///±¨µ¥²Ù×÷ÒıÓÃ
-	//	TThostFtdcOrderActionRefType	OrderActionRef;
-		///±¨µ¥ÒıÓÃ
-		strcpy(req.OrderRef, pOrder->OrderRef);
-		///ÇëÇó±àºÅ
-	//	TThostFtdcRequestIDType	RequestID;
-		///Ç°ÖÃ±àºÅ
-		req.FrontID = FRONT_ID;
-		///»á»°±àºÅ
-		req.SessionID = SESSION_ID;
-		///½»Ò×Ëù´úÂë
-	//	TThostFtdcExchangeIDType	ExchangeID;
-		///±¨µ¥±àºÅ
-	//	TThostFtdcOrderSysIDType	OrderSysID;
-		///²Ù×÷±êÖ¾
-		req.ActionFlag = THOST_FTDC_AF_Delete;
-		///¼Û¸ñ
-	//	TThostFtdcPriceType	LimitPrice;
-		///ÊıÁ¿±ä»¯
-	//	TThostFtdcVolumeType	VolumeChange;
-		///ÓÃ»§´úÂë
-	//	TThostFtdcUserIDType	UserID;
-		///ºÏÔ¼´úÂë
-		strcpy(req.InstrumentID, pOrder->InstrumentID);
-		lOrderTime=time(NULL);
-		int iResult = pUserApi->ReqOrderAction(&req, ++iRequestID);
-		cerr << "--->>> ±¨µ¥²Ù×÷ÇëÇó: " << ((iResult == 0) ? "³É¹¦" : "Ê§°Ü") << endl;
-		ORDER_ACTION_SENT = true;
-	}
-
-	void OnRspOrderAction(CThostFtdcInputOrderActionField *pInputOrderAction, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-	{
-		cerr << "--->>> " << "OnRspOrderAction" << endl;
-		IsErrorRspInfo(pRspInfo);
-	}
-
-	///±¨µ¥Í¨Öª
-	void OnRtnOrder(CThostFtdcOrderField *pOrder)
-	{
-		cerr << "--->>> " << "OnRtnOrder"  << endl;
-		lOrderOkTime=time(NULL);
-		time_t lTime=lOrderOkTime-lOrderTime;
-		cerr << "--->>> ±¨µ¥µ½±¨µ¥Í¨ÖªµÄÊ±¼ä²î = " << lTime << endl;
-		if (IsMyOrder(pOrder))
-		{
-			if (IsTradingOrder(pOrder))
-			{
-				//ReqOrderAction(pOrder);
-			}
-			else if (pOrder->OrderStatus == THOST_FTDC_OST_Canceled)
-				cout << "--->>> ³·µ¥³É¹¦" << endl;
-		}
-	}
-
-	///³É½»Í¨Öª
-	void OnRtnTrade(CThostFtdcTradeField *pTrade)
-	{
-		cerr << "--->>> " << "OnRtnTrade"  << endl;
-	}
-
-	void OnFrontDisconnected(int nReason)
-	{
-		cerr << "--->>> " << "OnFrontDisconnected" << endl;
-		cerr << "--->>> Reason = " << nReason << endl;
-	}
-			
-	void OnHeartBeatWarning(int nTimeLapse)
-	{
-		cerr << "--->>> " << "OnHeartBeatWarning" << endl;
-		cerr << "--->>> nTimerLapse = " << nTimeLapse << endl;
-	}
-
-	void OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-	{
-		printf("RequestID=[%d], Chain=[%d]\n", nRequestID, bIsLast);
-		cerr << "--->>> " << "OnRspError" << endl;
-		IsErrorRspInfo(pRspInfo);
-	}
-
-
-
-	bool IsMyOrder(CThostFtdcOrderField *pOrder)
-	{
-		return ((pOrder->FrontID == FRONT_ID) &&
-				(pOrder->SessionID == SESSION_ID) &&
-				(strcmp(pOrder->OrderRef, ORDER_REF) == 0));
-	}
-
-	bool IsTradingOrder(CThostFtdcOrderField *pOrder)
-	{
-		return ((pOrder->OrderStatus != THOST_FTDC_OST_PartTradedNotQueueing) &&
-				(pOrder->OrderStatus != THOST_FTDC_OST_Canceled) &&
-				(pOrder->OrderStatus != THOST_FTDC_OST_AllTraded));
-	}
-
-
-
-	private:
-	bool IsErrorRspInfo(CThostFtdcRspInfoField *pRspInfo)
-	{
-		// Èç¹ûErrorID != 0, ËµÃ÷ÊÕµ½ÁË´íÎóµÄÏìÓ¦
-		bool bResult = ((pRspInfo) && (pRspInfo->ErrorID != 0));
-		if (bResult)
-			cerr << "--->>> ErrorID=" << pRspInfo->ErrorID << ", ErrorMsg=" << pRspInfo->ErrorMsg << endl;
-		return bResult;
-	}
-
-
-	// Ö¸ÏòCThostFtdcMdApiÊµÀıµÄÖ¸Õë 
-    CThostFtdcTraderApi *m_pUserApi ; 
-
-
-};
+bool CTraderSpi::IsTradingOrder(CThostFtdcOrderField *pOrder)
+{
+	return ((pOrder->OrderStatus != THOST_FTDC_OST_PartTradedNotQueueing) &&
+			(pOrder->OrderStatus != THOST_FTDC_OST_Canceled) &&
+			(pOrder->OrderStatus != THOST_FTDC_OST_AllTraded));
+}
+*/

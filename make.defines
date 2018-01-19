@@ -1,0 +1,18 @@
+# This is the "Make.defines" file that almost every "Makefile" in the
+# source directories below this directory include.
+# The "../" in the pathnames actually refer to this directory, since
+# "make" is executed in all the subdirectories of this directory.
+#
+# System = i686-pc-linux-gnu
+# 2008/05/26 Alex Created
+INCLUDE = /home/xialei/work/TraderAPI/
+
+CXX = g++
+#Release
+DEFINES =  -pipe -o2 -DLINUX -I./ -I$(INCLUDE)
+LIBS = -lpthread -L$(INCLUDE) -lthosttraderapi
+AR = ar rc
+
+CLEANFILES = core core.* *.core *.o temp.* *.out typescript* \
+		*.lc *.lh *.bsdi *.sparc *.uw
+
