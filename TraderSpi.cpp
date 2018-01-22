@@ -32,9 +32,9 @@ extern TThostFtdcDirectionType	DIRECTION;	// 买卖方向
 int iRequestID=0;
 
 // 会话参数
-TThostFtdcFrontIDType	FRONT_ID;	//前置编号
-TThostFtdcSessionIDType	SESSION_ID;	//会话编号
-TThostFtdcOrderRefType	ORDER_REF;	//报单引用
+//TThostFtdcFrontIDType	FRONT_ID;	//前置编号//
+//TThostFtdcSessionIDType	SESSION_ID;	//会话编号
+//TThostFtdcOrderRefType	ORDER_REF;	//报单引用
 
 //TThostFtdcBrokerIDType	 BROKER_ID = "9999";				// 经纪公司代码
 //TThostFtdcInvestorIDType INVESTOR_ID = "110623";			// 注意输入你自己的simnow仿真投资者代码
@@ -60,44 +60,39 @@ void CTraderSpi::setUserLoginInfo( const char* BROKER_ID,const char* INVESTOR_ID
   
 }
 
-
+std::string CTraderSpi::getJsonStr(int uniqueID,std::string rspType,std::string isError,Json::Value rspArgs)
+{   ///获取当前交易日
+    Json::Value root;
+    root["RspArgs"]  =rspArgs;
+    root["UniqueID"] =uniqueID;
+    root["RspType"]  =rspType;
+    root["IsError"]  =isError;
+    
+	std::string out;
+	try  
+    {  
+    //root.toStyledString();
+    Json::StreamWriterBuilder wbuilder;
+    wbuilder["indentation"] = "";
+    out = Json::writeString(wbuilder, root);
+    
+    }catch(std::exception &ex)  
+    {  
+        printf("StructDataToJsonString exception %s.\n", ex.what());  
+        return out;
+        
+    } 
+    std::cout << "'" << out << "'" << std::endl;
+    return out;
+}
 
 void CTraderSpi::OnFrontConnected()
 {
 	cerr << "--->>> " << "OnFrontConnected" << endl;
 	ReqUserLogin();
 	///用户登录请求
-	Json::Value root;
-    Json::Value arrayObj;
-    Json::Value item;
-
-    item["cpp"] = "jsoncpp";
-    item["java"] = "jsoninjava";
-    item["php"] = "support";
-    arrayObj.append(item);
-
-    root["name"] = "json";
-    root["array"] = arrayObj;
-    try  
-    {  
-    //root.toStyledString();
-    Json::StreamWriterBuilder wbuilder;
-    wbuilder["indentation"] = "";
-    std::string out = Json::writeString(wbuilder, root);
-    std::cout << "'" << out << "'" << std::endl;
-    //Json::FastWriter writer;  
-    //std::string out = writer.writeString(root);  
-     
-    //std::cout << out << std::endl;
-
-	std::string SIP_msg="xialei1981\r\n";
-    m_client->send(m_hdl, out.c_str(), websocketpp::frame::opcode::text);
-    }  
-    catch(std::exception &ex)  
-    {  
-        printf("StructDataToJsonString exception %s.\n", ex.what());  
-        
-    }  
+	
+ 
 	
 }
 
@@ -118,19 +113,51 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
 	cerr << "--->>> " << "OnRspUserLogin" << endl;
 	if (bIsLast && !IsErrorRspInfo(pRspInfo))
 	{
+
 		// 保存会话参数
-		FRONT_ID = pRspUserLogin->FrontID;
-		SESSION_ID = pRspUserLogin->SessionID;
-		int iNextOrderRef = atoi(pRspUserLogin->MaxOrderRef);
-		iNextOrderRef++;
-		sprintf(ORDER_REF, "%d", iNextOrderRef);
+		this->FRONT_ID = pRspUserLogin->FrontID;
+		this->SESSION_ID = pRspUserLogin->SessionID;
+		//this->FRONT_ID = iFrontID;
+        //strcpy(this->FRONT_ID, pRspUserLogin->FrontID);
+        //this->SESSION_ID = new char[strlen(pRspUserLogin->SESSION_ID)+1];
+        //strcpy(this->SESSION_ID, pRspUserLogin->SESSION_ID);
+
+		//SESSION_ID = pRspUserLogin->SessionID;
+		cerr << "--->>> " << "OnRspUserLogin2" << endl;
+		//int iNextOrderRef = atoi(pRspUserLogin->MaxOrderRef);
+		//iNextOrderRef++;
+		//char* ORDER_REF;
+		//sprintf(ORDER_REF, "%d", iNextOrderRef);
+		//cerr << "--->>> " << "OnRspUserLogin4" << endl;
+		//this->ORDER_REF = new char[strlen(ORDER_REF)+1];
+		//cerr << "--->>> " << "OnRspUserLogin5" << endl;
+		this->ORDER_REF = new char[strlen(pRspUserLogin->MaxOrderRef)+1];
+		strcpy(this->ORDER_REF, pRspUserLogin->MaxOrderRef);
+        cerr << "--->>> " << "OnRspUserLogin3" << endl;
 		///获取当前交易日
-		cerr << "--->>> 获取当前交易日 = " << pUserApi->GetTradingDay() << endl;
-		///投资者结算结果确认
+		Json::Value rspArgs;
+        rspArgs["TradingDay"] = pRspUserLogin->TradingDay;
+        rspArgs["LoginTime"] = pRspUserLogin->LoginTime;
+        rspArgs["BrokerID"] = pRspUserLogin->BrokerID;
+        rspArgs["UserID"] = pRspUserLogin->UserID;
+        rspArgs["SystemName"] = pRspUserLogin->SystemName;
+        rspArgs["FrontID"] = pRspUserLogin->FrontID;
+        rspArgs["SessionID"] = pRspUserLogin->SessionID;
+        rspArgs["MaxOrderRef"] = pRspUserLogin->MaxOrderRef;
+        rspArgs["SHFETime"] = pRspUserLogin->SHFETime;
+        rspArgs["DCETime"] = pRspUserLogin->DCETime;
+        rspArgs["CZCETime"] = pRspUserLogin->CZCETime;
+        rspArgs["FFEXTime"] = pRspUserLogin->FFEXTime;
+        rspArgs["INETime"] = pRspUserLogin->INETime;
+        cerr << "--->>> 获取当前交易日 = " << pUserApi->GetTradingDay() << endl;
+		//std::string SIP_msg="xialei1981\r\n";
+        m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspUserLogin","false",rspArgs).c_str()
+        		, websocketpp::frame::opcode::text);
+		///投资者结算结果确认,
 		//ReqSettlementInfoConfirm();
 	}
 }
-/**
+
 void CTraderSpi::ReqSettlementInfoConfirm()
 {
 	CThostFtdcSettlementInfoConfirmField req;
@@ -155,7 +182,7 @@ void CTraderSpi::ReqQryInstrument()
 {
 	CThostFtdcQryInstrumentField req;
 	memset(&req, 0, sizeof(req));
-	strcpy(req.InstrumentID, INSTRUMENT_ID);
+	//add xialei strcpy(req.InstrumentID, INSTRUMENT_ID);
 	int iResult = pUserApi->ReqQryInstrument(&req, ++iRequestID);
 	cerr << "--->>> 请求查询合约: " << ((iResult == 0) ? "成功" : "失败") << endl;
 }
@@ -196,7 +223,7 @@ void CTraderSpi::ReqQryInvestorPosition()
 	memset(&req, 0, sizeof(req));
 	strcpy(req.BrokerID, BROKER_ID);
 	strcpy(req.InvestorID, INVESTOR_ID);
-	strcpy(req.InstrumentID, INSTRUMENT_ID);
+	//add xialei strcpy(req.InstrumentID, INSTRUMENT_ID);
 	int iResult = pUserApi->ReqQryInvestorPosition(&req, ++iRequestID);
 	cerr << "--->>> 请求查询投资者持仓: " << ((iResult == 0) ? "成功" : "失败") << endl;
 }
@@ -220,7 +247,7 @@ void CTraderSpi::ReqOrderInsert()
 	///投资者代码
 	strcpy(req.InvestorID, INVESTOR_ID);
 	///合约代码
-	strcpy(req.InstrumentID, INSTRUMENT_ID);
+	// add xialei strcpy(req.InstrumentID, INSTRUMENT_ID);
 	///报单引用
 	strcpy(req.OrderRef, ORDER_REF);
 	///用户代码
@@ -228,13 +255,13 @@ void CTraderSpi::ReqOrderInsert()
 	///报单价格条件: 限价
 	req.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
 	///买卖方向: 
-	req.Direction = DIRECTION;
+	// add xialei req.Direction = DIRECTION;
 	///组合开平标志: 开仓
 	req.CombOffsetFlag[0] = THOST_FTDC_OF_Open;
 	///组合投机套保标志
 	req.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
 	///价格
-	req.LimitPrice = LIMIT_PRICE;
+	// add xialei req.LimitPrice = LIMIT_PRICE;
 	///数量: 1
 	req.VolumeTotalOriginal = 1;
 	///有效期类型: 当日有效
@@ -360,7 +387,7 @@ void CTraderSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bo
 	cerr << "--->>> " << "OnRspError" << endl;
 	IsErrorRspInfo(pRspInfo);
 }
-*/
+
 bool CTraderSpi::IsErrorRspInfo(CThostFtdcRspInfoField *pRspInfo)
 {
 	// 如果ErrorID != 0, 说明收到了错误的响应

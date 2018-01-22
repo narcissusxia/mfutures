@@ -91,9 +91,11 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
 
     //登录请求
     if (root["ReqType"].asString() == "ReqUserLogin") {
-      const char* saddr = root["ReqArgs"]["URL"].asString().c_str();
-      char* addr   = new char[strlen(saddr)+1];
-      strcpy(addr, saddr);
+      std::string saddr = root["ReqArgs"]["URL"].asString();
+      char* addr;  
+      const int len = saddr.length();  
+      addr=new char[len+1];  
+      strcpy(addr,saddr.c_str());
       
       cout  <<"UniqueID=" << root["ReqArgs"]["URL"].asString()<< endl;
       cout  <<"BROKER_ID=" <<root["ReqArgs"]["BROKER_ID"].asString().c_str()<< endl;
@@ -176,19 +178,6 @@ int main(int argc, char* argv[]) {
     cout << praenomen + " " + nomen + " " + cognomen  
           << " was born in year " << born   
           << ", died in year " << died << endl;  
-
-     // 初始化线程同步变量
-  //sem_init(&sem,0,0);
-  printf("userid:\n");
-  // 等待登录成功消息
-  //sem_wait(&sem);
-
-  
-
- 
-  printf("usereed:\n");
-  //pUserApi->Init();
-  printf("usereed:\n");
 
   //pUserApi->Join();
   //pUserApi->Release();
