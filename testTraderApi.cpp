@@ -348,7 +348,7 @@ public:
 		IsErrorRspInfo(pRspInfo);
 	}
 
-
+*/
 
 	bool IsMyOrder(CThostFtdcOrderField *pOrder)
 	{
@@ -383,7 +383,7 @@ public:
 
 };
 
-*/
+
 int main()
 {
 
