@@ -92,8 +92,6 @@ void CTraderSpi::OnFrontConnected()
 	ReqUserLogin();
 	///用户登录请求
 	
- 
-	
 }
 
 void CTraderSpi::ReqUserLogin()
@@ -233,59 +231,69 @@ void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInve
 	cerr << "--->>> " << "OnRspQryInvestorPosition" << endl;
 	if (bIsLast && !IsErrorRspInfo(pRspInfo))
 	{
-		///报单录入请求
-		ReqOrderInsert();
+        
 	}
 }
 
-void CTraderSpi::ReqOrderInsert()
+void CTraderSpi::ReqOrderInsert(Json::Value root)
 {
 	CThostFtdcInputOrderField req;
 	memset(&req, 0, sizeof(req));
-	///经纪公司代码
-	strcpy(req.BrokerID, BROKER_ID);
-	///投资者代码
-	strcpy(req.InvestorID, INVESTOR_ID);
-	///合约代码
-	// add xialei strcpy(req.InstrumentID, INSTRUMENT_ID);
-	///报单引用
-	strcpy(req.OrderRef, ORDER_REF);
-	///用户代码
-//	TThostFtdcUserIDType	UserID;
-	///报单价格条件: 限价
-	req.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
-	///买卖方向: 
-	// add xialei req.Direction = DIRECTION;
-	///组合开平标志: 开仓
-	req.CombOffsetFlag[0] = THOST_FTDC_OF_Open;
-	///组合投机套保标志
-	req.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
-	///价格
-	// add xialei req.LimitPrice = LIMIT_PRICE;
-	///数量: 1
-	req.VolumeTotalOriginal = 1;
-	///有效期类型: 当日有效
-	req.TimeCondition = THOST_FTDC_TC_GFD;
-	///GTD日期
-//	TThostFtdcDateType	GTDDate;
-	///成交量类型: 任何数量
-	req.VolumeCondition = THOST_FTDC_VC_AV;
-	///最小成交量: 1
-	req.MinVolume = 1;
-	///触发条件: 立即
-	req.ContingentCondition = THOST_FTDC_CC_Immediately;
-	///止损价
-//	TThostFtdcPriceType	StopPrice;
-	///强平原因: 非强平
-	req.ForceCloseReason = THOST_FTDC_FCC_NotForceClose;
-	///自动挂起标志: 否
-	req.IsAutoSuspend = 0;
-	///业务单元
-//	TThostFtdcBusinessUnitType	BusinessUnit;
-	///请求编号
-//	TThostFtdcRequestIDType	RequestID;
-	///用户强评标志: 否
-	req.UserForceClose = 0;
+    ///经纪公司代码
+    strcpy(req.BrokerID, BROKER_ID);
+    ///投资者代码
+    strcpy(req.InvestorID, INVESTOR_ID);
+    ///报单价格条件: 限价
+    req.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
+    ///报单引用
+    strcpy(req.OrderRef, root["ReqArgs"]["OrderRef"].asString().c_str());
+    ///用户代码
+    // TThostFtdcUserIDType  UserID
+    ///合约代码
+    strcpy(req.InstrumentID, root["ReqArgs"]["InstrumentID"].asString().c_str());
+    ///买卖方向: 
+    req.Direction=root["ReqArgs"]["Direction"].asString().c_str()[0];
+    //strcpy(&req.Direction, root["ReqArgs"]["Direction"].asString().c_str());
+    //买 THOST_FTDC_D_Buy '0'/ 卖THOST_FTDC_D_Sell '1'
+    //req.Direction = root["ReqArgs"]["Direction"].asString()[0];
+    ///组合开平标志: 开仓
+    req.CombOffsetFlag[0] = root["ReqArgs"]["CombOffsetFlag"].asString().c_str()[0];
+    //strcpy(&req.CombOffsetFlag[0], root["ReqArgs"]["CombOffsetFlag"].asString().c_str());
+    //req.CombOffsetFlag[0] = const_cast<char *>(root["ReqArgs"]["Direction"].asString().c_str());//THOST_FTDC_OF_Open;
+    ///价格.c_str()
+    req.LimitPrice = root["ReqArgs"]["LimitPrice"].asDouble();/// LIMIT_PRICE;
+    ///数量: 1
+    req.VolumeTotalOriginal = root["ReqArgs"]["VolumeTotalOriginal"].asInt();//1;
+
+    ///组合投机套保标志
+    req.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
+    ///投机 THOST_FTDC_HF_Speculation '1'
+    ///套利 THOST_FTDC_HF_Arbitrage '2'
+    ///套保 THOST_FTDC_HF_Hedge '3'
+    ///做市商 THOST_FTDC_HF_MarketMaker '5'
+    
+    ///有效期类型: 当日有效
+    req.TimeCondition = THOST_FTDC_TC_GFD;
+    ///GTD日期
+    //  TThostFtdcDateType  GTDDate;
+    ///成交量类型: 任何数量
+    req.VolumeCondition = THOST_FTDC_VC_AV;
+    ///最小成交量: 1
+    req.MinVolume = 1;
+    ///触发条件: 立即
+    req.ContingentCondition = THOST_FTDC_CC_Immediately;
+    ///止损价
+    // TThostFtdcPriceType StopPrice;
+    ///强平原因: 非强平
+    req.ForceCloseReason = THOST_FTDC_FCC_NotForceClose;
+    ///自动挂起标志: 否
+    req.IsAutoSuspend = 0;
+    ///业务单元
+    //  TThostFtdcBusinessUnitType  BusinessUnit;
+    ///请求编号
+    //  TThostFtdcRequestIDType RequestID;
+    ///用户强评标志: 否
+    req.UserForceClose = 0;
 
 	lOrderTime=time(NULL);
 	int iResult = pUserApi->ReqOrderInsert(&req, ++iRequestID);
@@ -295,7 +303,12 @@ void CTraderSpi::ReqOrderInsert()
 void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
 	cerr << "--->>> " << "OnRspOrderInsert" << endl;
-	IsErrorRspInfo(pRspInfo);
+    Json::Value rspArgs;
+	if(IsErrorRspInfo(pRspInfo)){
+        rspArgs["ErrorMsg"] = pRspInfo->ErrorMsg;
+        m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspOrderInsert","true",rspArgs).c_str()
+                , websocketpp::frame::opcode::text);
+    }
 }
 
 void CTraderSpi::ReqOrderAction(CThostFtdcOrderField *pOrder)
@@ -326,6 +339,7 @@ void CTraderSpi::ReqOrderAction(CThostFtdcOrderField *pOrder)
 //	TThostFtdcOrderSysIDType	OrderSysID;
 	///操作标志
 	req.ActionFlag = THOST_FTDC_AF_Delete;
+    ///删除 THOST_FTDC_AF_Delete '0'  修改 THOST_FTDC_AF_Modify '3'
 	///价格
 //	TThostFtdcPriceType	LimitPrice;
 	///数量变化
@@ -346,6 +360,7 @@ void CTraderSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pInputOrderAc
 	IsErrorRspInfo(pRspInfo);
 }
 
+
 ///报单通知
 void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
 {
@@ -355,11 +370,59 @@ void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
 	cerr << "--->>> 报单到报单通知的时间差 = " << lTime << endl;
 	if (IsMyOrder(pOrder))
 	{
-		if (IsTradingOrder(pOrder))
-		{
+        Json::Value rspArgs;
+        rspArgs["RequestID"] = pOrder->RequestID;
+        rspArgs["OrderLocalID"] = pOrder->OrderLocalID;
+        rspArgs["ExchangeID"] = pOrder->ExchangeID;
+        rspArgs["ParticipantID"] = pOrder->ParticipantID;
+        rspArgs["ClientID"] =pOrder->ClientID;
+        rspArgs["ExchangeInstID"] = pOrder->ExchangeInstID;
+        rspArgs["TraderID"] = pOrder->TraderID;
+        rspArgs["InstallID"] = pOrder->InstallID;
+        rspArgs["OrderSubmitStatus"] = pOrder->OrderSubmitStatus;
+        rspArgs["NotifySequence"] = pOrder->NotifySequence;
+        rspArgs["TradingDay"] = pOrder->TradingDay;
+        rspArgs["SettlementID"] = pOrder->SettlementID;
+        rspArgs["OrderSysID"] = pOrder->OrderSysID;
+        rspArgs["OrderSource"] = pOrder->OrderSource;
+        rspArgs["OrderStatus"] = pOrder->OrderStatus;
+        rspArgs["OrderType"] = pOrder->OrderType;
+        rspArgs["VolumeTraded"] = pOrder->VolumeTraded;
+        rspArgs["VolumeTotal"] = pOrder->VolumeTotal;
+        rspArgs["InsertDate"] = pOrder->InsertDate;
+        rspArgs["InsertTime"] = pOrder->InsertTime;
+        rspArgs["ActiveTime"] = pOrder->ActiveTime;
+        rspArgs["SuspendTime"] = pOrder->SuspendTime;
+        rspArgs["UpdateTime"] = pOrder->UpdateTime;
+        rspArgs["CancelTime"] = pOrder->CancelTime;
+        rspArgs["ActiveTraderID"] = pOrder->ActiveTraderID;
+        rspArgs["ClearingPartID"] = pOrder->ClearingPartID;
+        rspArgs["SequenceNo"] = pOrder->SequenceNo;
+        rspArgs["FrontID"] = pOrder->FrontID;
+        rspArgs["SessionID"] = pOrder->SessionID;
+        rspArgs["UserProductInfo"] = pOrder->UserProductInfo;
+        rspArgs["StatusMsg"] = pOrder->StatusMsg;
+        rspArgs["UserForceClose"] = pOrder->UserForceClose;
+        rspArgs["ActiveUserID"] = pOrder->ActiveUserID;
+        rspArgs["BrokerOrderSeq"] = pOrder->BrokerOrderSeq;
+        rspArgs["RelativeOrderSysID"] = pOrder->RelativeOrderSysID;
+        rspArgs["ZCETotalTradedVolume"] = pOrder->ZCETotalTradedVolume;
+        rspArgs["IsSwapOrder"] = pOrder->IsSwapOrder;
+        rspArgs["BranchID"] = pOrder->BranchID;
+        rspArgs["InvestUnitID"] = pOrder->InvestUnitID;
+        rspArgs["AccountID"] = pOrder->AccountID;
+        rspArgs["CurrencyID"] = pOrder->CurrencyID;
+        rspArgs["IPAddress"] = pOrder->IPAddress;
+        rspArgs["MacAddress"] = pOrder->MacAddress;
+        m_client->send(m_hdl, getJsonStr(pOrder->RequestID,"OnRtnOrder","false",rspArgs).c_str()
+                , websocketpp::frame::opcode::text);
+
+    }
+	if (IsTradingOrder(pOrder))
+	{
 			//ReqOrderAction(pOrder);
-		}
-		else if (pOrder->OrderStatus == THOST_FTDC_OST_Canceled)
+	}
+    else if (pOrder->OrderStatus == THOST_FTDC_OST_Canceled){
 			cout << "--->>> 撤单成功" << endl;
 	}
 }
@@ -368,6 +431,40 @@ void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
 void CTraderSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 {
 	cerr << "--->>> " << "OnRtnTrade"  << endl;
+    if(true){
+        Json::Value rspArgs;
+        rspArgs["BrokerID"] = pTrade->BrokerID;
+        rspArgs["InvestorID"] = pTrade->InvestorID;
+        rspArgs["InstrumentID"] = pTrade->InstrumentID;
+        rspArgs["OrderRef"] = pTrade->OrderRef;
+        rspArgs["UserID"] = pTrade->UserID;
+        rspArgs["TradeID"] = pTrade->TradeID;
+        rspArgs["Direction"] = pTrade->Direction;
+        rspArgs["OrderSysID"] = pTrade->OrderSysID;
+        rspArgs["ParticipantID"] = pTrade->ParticipantID;
+        rspArgs["ClientID"] = pTrade->ClientID;
+        rspArgs["TradingRole"] = pTrade->TradingRole;
+        rspArgs["ExchangeInstID"] = pTrade->ExchangeInstID;
+        rspArgs["OffsetFlag"] = pTrade->OffsetFlag;
+        rspArgs["HedgeFlag"] = pTrade->HedgeFlag;
+        rspArgs["Price"] = pTrade->Price;
+        rspArgs["Volume"] = pTrade->Volume;
+        rspArgs["TradeDate"] = pTrade->TradeDate;
+        rspArgs["TradeTime"] = pTrade->TradeTime;
+        rspArgs["TradeType"] = pTrade->TradeType;
+        rspArgs["PriceSource"] = pTrade->PriceSource;
+        rspArgs["TraderID"] = pTrade->TraderID;
+        rspArgs["OrderLocalID"] = pTrade->OrderLocalID;
+        rspArgs["ClearingPartID"] = pTrade->ClearingPartID;
+        rspArgs["BusinessUnit"] = pTrade->BusinessUnit;
+        rspArgs["SequenceNo"] = pTrade->SequenceNo;
+        rspArgs["TradingDay"] = pTrade->TradingDay;
+        rspArgs["SettlementID"] = pTrade->SettlementID;
+        rspArgs["BrokerOrderSeq"] = pTrade->BrokerOrderSeq;
+        rspArgs["TradeSource"] = pTrade->TradeSource;
+        m_client->send(m_hdl, getJsonStr(0,"OnRtnTrade","false",rspArgs).c_str()
+                , websocketpp::frame::opcode::text);
+    }
 }
 
 void CTraderSpi:: OnFrontDisconnected(int nReason)
@@ -385,7 +482,12 @@ void CTraderSpi::OnHeartBeatWarning(int nTimeLapse)
 void CTraderSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
 	cerr << "--->>> " << "OnRspError" << endl;
-	IsErrorRspInfo(pRspInfo);
+	if(IsErrorRspInfo(pRspInfo)){
+      Json::Value rspArgs;
+      rspArgs["ErrorMsg"] = pRspInfo->ErrorMsg;
+      m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspError","true",rspArgs).c_str()
+                , websocketpp::frame::opcode::text);
+    }
 }
 
 bool CTraderSpi::IsErrorRspInfo(CThostFtdcRspInfoField *pRspInfo)

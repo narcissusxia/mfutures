@@ -61,7 +61,7 @@ public:
 
     virtual std::string getJsonStr(int uniqueID,std::string rspType,std::string isError,Json::Value rspArgs);
 
-private:
+public:
 
 	client* m_client;
 
@@ -73,7 +73,7 @@ private:
 
     // 会话参数
     int 	FRONT_ID;	//前置编号
-    int	SESSION_ID;	//会话编号
+    int	    SESSION_ID;	//会话编号
     char*	ORDER_REF;	//报单引用
 
 	
@@ -86,7 +86,7 @@ private:
 	///请求查询投资者持仓
 	void ReqQryInvestorPosition();
 	///报单录入请求
-	void ReqOrderInsert();
+	void ReqOrderInsert(Json::Value root);
 	///报单操作请求
 	void ReqOrderAction(CThostFtdcOrderField *pOrder);
 

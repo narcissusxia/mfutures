@@ -97,7 +97,7 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
       addr=new char[len+1];  
       strcpy(addr,saddr.c_str());
       
-      cout  <<"UniqueID=" << root["ReqArgs"]["URL"].asString()<< endl;
+      cout  <<"URL=" << root["ReqArgs"]["URL"].asString()<< endl;
       cout  <<"BROKER_ID=" <<root["ReqArgs"]["BROKER_ID"].asString().c_str()<< endl;
       cout  <<"INVESTOR_ID=" << root["ReqArgs"]["INVESTOR_ID"].asString().c_str()<< endl;
       cout  <<"PASSWORD=" << root["ReqArgs"]["PASSWORD"].asString().c_str()<< endl;
@@ -111,6 +111,12 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
       //启动Websocket
       pUserApi->RegisterFront(addr);
       pUserApi->Init(); 
+    }//下单请求
+    else if(root["ReqType"].asString() == "ReqOrderInsert"){
+      sh->ReqOrderInsert(root);
+    }//撤单请求
+    else if(root["ReqType"].asString() == "ReqOrderInsert"){
+      sh->ReqOrderInsert(root);
     }
 
     websocketpp::lib::error_code ec;
@@ -158,7 +164,8 @@ int main(int argc, char* argv[]) {
     // Create a client endpoint
   
 
-    std::string uri = "ws://192.168.1.6:8080/futures/websocket/cppclient";
+    std::string uri = "ws://47.96.149.27/bb/futures/websocket/cppclient";
+    //std::string uri = "ws://192.168.1.6:8080/futures/websocket/cppclient";
 
     if (argc == 2) {
         uri = argv[1];
