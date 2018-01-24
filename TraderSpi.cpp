@@ -49,8 +49,9 @@ void CTraderSpi::setWebsocket(client* c,websocketpp::connection_hdl hdl)
 	m_client = c; m_hdl =hdl;
 }
 
-void CTraderSpi::setUserLoginInfo( const char* BROKER_ID,const char* INVESTOR_ID,const char*  PASSWORD)
+void CTraderSpi::setUserLoginInfo(int id , const char* BROKER_ID,const char* INVESTOR_ID,const char*  PASSWORD)
 {  
+    this->loginID = id;
 	this->BROKER_ID = new char[strlen(BROKER_ID)+1];
     strcpy(this->BROKER_ID, BROKER_ID);
     this->INVESTOR_ID = new char[strlen(INVESTOR_ID)+1];
@@ -89,19 +90,19 @@ std::string CTraderSpi::getJsonStr(int uniqueID,std::string rspType,std::string 
 void CTraderSpi::OnFrontConnected()
 {
 	cerr << "--->>> " << "OnFrontConnected" << endl;
-	ReqUserLogin();
+	ReqUserLogin(loginID);
 	///用户登录请求
 	
 }
 
-void CTraderSpi::ReqUserLogin()
+void CTraderSpi::ReqUserLogin(int loginID)
 {
 	CThostFtdcReqUserLoginField req;
 	//memset(&req, 0, sizeof(req));
 	strcpy(req.BrokerID, this->BROKER_ID);
 	strcpy(req.UserID, this->INVESTOR_ID);
 	strcpy(req.Password, this->PASSWORD);
-	int iResult = pUserApi->ReqUserLogin(&req, ++iRequestID);
+	int iResult = pUserApi->ReqUserLogin(&req, loginID);
 	cerr << "--->>> 发送用户登录请求: " <<req.BrokerID<< ((iResult == 0) ? "成功" : "失败") << endl;
 }
 
@@ -115,6 +116,7 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
 		// 保存会话参数
 		this->FRONT_ID = pRspUserLogin->FrontID;
 		this->SESSION_ID = pRspUserLogin->SessionID;
+
 		//this->FRONT_ID = iFrontID;
         //strcpy(this->FRONT_ID, pRspUserLogin->FrontID);
         //this->SESSION_ID = new char[strlen(pRspUserLogin->SESSION_ID)+1];
@@ -156,13 +158,13 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
 	}
 }
 
-void CTraderSpi::ReqSettlementInfoConfirm()
+void CTraderSpi::ReqSettlementInfoConfirm(Json::Value root)
 {
 	CThostFtdcSettlementInfoConfirmField req;
 	memset(&req, 0, sizeof(req));
 	strcpy(req.BrokerID, BROKER_ID);
 	strcpy(req.InvestorID, INVESTOR_ID);
-	int iResult = pUserApi->ReqSettlementInfoConfirm(&req, ++iRequestID);
+	int iResult = pUserApi->ReqSettlementInfoConfirm(&req, root["UniqueID"].asInt());
 	cerr << "--->>> 投资者结算结果确认: " << ((iResult == 0) ? "成功" : "失败") << endl;
 }
 

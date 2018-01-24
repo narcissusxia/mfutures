@@ -55,9 +55,9 @@ public:
 
 	virtual void setWebsocket(client* c,websocketpp::connection_hdl hdl);
 
-    virtual void setUserLoginInfo(const char* BROKER_ID,const char* INVESTOR_ID,const char*  PASSWORD);
+    virtual void setUserLoginInfo(int loginID,const char* BROKER_ID,const char* INVESTOR_ID,const char*  PASSWORD);
 	///用户登录请求
-	void ReqUserLogin();
+	void ReqUserLogin(int loginID);
 
     virtual std::string getJsonStr(int uniqueID,std::string rspType,std::string isError,Json::Value rspArgs);
 
@@ -76,9 +76,11 @@ public:
     int	    SESSION_ID;	//会话编号
     char*	ORDER_REF;	//报单引用
 
+    int loginID;
+
 	
 	///投资者结算结果确认
-	void ReqSettlementInfoConfirm();
+	void ReqSettlementInfoConfirm(Json::Value root);
 	///请求查询合约
 	void ReqQryInstrument();
 	///请求查询资金账户
