@@ -171,7 +171,7 @@ int main(int argc, char* argv[]) {
   
 
     //std::string uri = "ws://47.96.149.27/bb/futures/websocket/cppclient";
-    std::string uri = "ws://192.168.1.6:8080/futures/websocket/cppclient";
+    std::string uri = "ws://192.168.1.6:8080/futures/websocket/cppclient001";
 
     if (argc == 2) {
         uri = argv[1];

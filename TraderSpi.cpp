@@ -20,25 +20,25 @@ using namespace std;
 extern CThostFtdcTraderApi* pUserApi;
 
 // 配置参数
-//extern char FRONT_ADDR[];		// 前置地址
-//extern char BROKER_ID[];		// 经纪公司代码
-extern char INVESTOR_ID[];		// 投资者代码
-//extern char PASSWORD[];			// 用户密码
-extern char INSTRUMENT_ID[];	// 合约代码
-extern TThostFtdcPriceType	LIMIT_PRICE;	// 价格
-extern TThostFtdcDirectionType	DIRECTION;	// 买卖方向
+//extern char FRONT_ADDR[];  // 前置地址
+//extern char BROKER_ID[];  // 经纪公司代码
+extern char INVESTOR_ID[];  // 投资者代码
+//extern char PASSWORD[];   // 用户密码
+extern char INSTRUMENT_ID[]; // 合约代码
+extern TThostFtdcPriceType LIMIT_PRICE; // 价格
+extern TThostFtdcDirectionType DIRECTION; // 买卖方向
 
 // 请求编号
 int iRequestID=0;
 
 // 会话参数
-//TThostFtdcFrontIDType	FRONT_ID;	//前置编号//
-//TThostFtdcSessionIDType	SESSION_ID;	//会话编号
-//TThostFtdcOrderRefType	ORDER_REF;	//报单引用
+//TThostFtdcFrontIDType FRONT_ID; //前置编号//
+//TThostFtdcSessionIDType SESSION_ID; //会话编号
+//TThostFtdcOrderRefType ORDER_REF; //报单引用
 
-//TThostFtdcBrokerIDType	 BROKER_ID = "9999";				// 经纪公司代码
-//TThostFtdcInvestorIDType INVESTOR_ID = "110623";			// 注意输入你自己的simnow仿真投资者代码
-//TThostFtdcPasswordType   PASSWORD = "xialei1981";			// 注意输入你自己的simnow仿真用户密码
+//TThostFtdcBrokerIDType  BROKER_ID = "9999";    // 经纪公司代码
+//TThostFtdcInvestorIDType INVESTOR_ID = "110623";   // 注意输入你自己的simnow仿真投资者代码
+//TThostFtdcPasswordType   PASSWORD = "xialei1981";   // 注意输入你自己的simnow仿真用户密码
 
 time_t lOrderTime;
 time_t lOrderOkTime;
@@ -46,13 +46,13 @@ time_t lOrderOkTime;
 
 void CTraderSpi::setWebsocket(client* c,websocketpp::connection_hdl hdl)
 {  
-	m_client = c; m_hdl =hdl;
+ m_client = c; m_hdl =hdl;
 }
 
 void CTraderSpi::setUserLoginInfo(int id , const char* BROKER_ID,const char* INVESTOR_ID,const char*  PASSWORD)
 {  
     this->loginID = id;
-	this->BROKER_ID = new char[strlen(BROKER_ID)+1];
+ this->BROKER_ID = new char[strlen(BROKER_ID)+1];
     strcpy(this->BROKER_ID, BROKER_ID);
     this->INVESTOR_ID = new char[strlen(INVESTOR_ID)+1];
     strcpy(this->INVESTOR_ID, INVESTOR_ID);
@@ -69,8 +69,8 @@ std::string CTraderSpi::getJsonStr(int uniqueID,std::string rspType,std::string 
     root["RspType"]  =rspType;
     root["IsError"]  =isError;
     
-	std::string out;
-	try  
+ std::string out;
+ try  
     {  
     //root.toStyledString();
     Json::StreamWriterBuilder wbuilder;
@@ -89,53 +89,53 @@ std::string CTraderSpi::getJsonStr(int uniqueID,std::string rspType,std::string 
 
 void CTraderSpi::OnFrontConnected()
 {
-	cerr << "--->>> " << "OnFrontConnected" << endl;
-	ReqUserLogin(loginID);
-	///用户登录请求
-	
+ cerr << "--->>> " << "OnFrontConnected" << endl;
+ ReqUserLogin(loginID);
+ ///用户登录请求
+ 
 }
 
 void CTraderSpi::ReqUserLogin(int loginID)
 {
-	CThostFtdcReqUserLoginField req;
-	//memset(&req, 0, sizeof(req));
-	strcpy(req.BrokerID, this->BROKER_ID);
-	strcpy(req.UserID, this->INVESTOR_ID);
-	strcpy(req.Password, this->PASSWORD);
-	int iResult = pUserApi->ReqUserLogin(&req, loginID);
-	cerr << "--->>> 发送用户登录请求: " <<req.BrokerID<< ((iResult == 0) ? "成功" : "失败") << endl;
+ CThostFtdcReqUserLoginField req;
+ //memset(&req, 0, sizeof(req));
+ strcpy(req.BrokerID, this->BROKER_ID);
+ strcpy(req.UserID, this->INVESTOR_ID);
+ strcpy(req.Password, this->PASSWORD);
+ int iResult = pUserApi->ReqUserLogin(&req, loginID);
+ cerr << "--->>> 发送用户登录请求: " <<req.BrokerID<< ((iResult == 0) ? "成功" : "失败") << endl;
 }
 
 void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
-		CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
+  CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
-	cerr << "--->>> " << "OnRspUserLogin" << endl;
-	if (bIsLast && !IsErrorRspInfo(pRspInfo))
-	{
+ cerr << "--->>> " << "OnRspUserLogin" << endl;
+ if (bIsLast && !IsErrorRspInfo(pRspInfo))
+ {
 
-		// 保存会话参数
-		this->FRONT_ID = pRspUserLogin->FrontID;
-		this->SESSION_ID = pRspUserLogin->SessionID;
+  // 保存会话参数
+  this->FRONT_ID = pRspUserLogin->FrontID;
+  this->SESSION_ID = pRspUserLogin->SessionID;
 
-		//this->FRONT_ID = iFrontID;
+  //this->FRONT_ID = iFrontID;
         //strcpy(this->FRONT_ID, pRspUserLogin->FrontID);
         //this->SESSION_ID = new char[strlen(pRspUserLogin->SESSION_ID)+1];
         //strcpy(this->SESSION_ID, pRspUserLogin->SESSION_ID);
 
-		//SESSION_ID = pRspUserLogin->SessionID;
-		cerr << "--->>> " << "OnRspUserLogin2" << endl;
-		//int iNextOrderRef = atoi(pRspUserLogin->MaxOrderRef);
-		//iNextOrderRef++;
-		//char* ORDER_REF;
-		//sprintf(ORDER_REF, "%d", iNextOrderRef);
-		//cerr << "--->>> " << "OnRspUserLogin4" << endl;
-		//this->ORDER_REF = new char[strlen(ORDER_REF)+1];
-		//cerr << "--->>> " << "OnRspUserLogin5" << endl;
-		this->ORDER_REF = new char[strlen(pRspUserLogin->MaxOrderRef)+1];
-		strcpy(this->ORDER_REF, pRspUserLogin->MaxOrderRef);
+  //SESSION_ID = pRspUserLogin->SessionID;
+  cerr << "--->>> " << "OnRspUserLogin2" << endl;
+  //int iNextOrderRef = atoi(pRspUserLogin->MaxOrderRef);
+  //iNextOrderRef++;
+  //char* ORDER_REF;
+  //sprintf(ORDER_REF, "%d", iNextOrderRef);
+  //cerr << "--->>> " << "OnRspUserLogin4" << endl;
+  //this->ORDER_REF = new char[strlen(ORDER_REF)+1];
+  //cerr << "--->>> " << "OnRspUserLogin5" << endl;
+  this->ORDER_REF = new char[strlen(pRspUserLogin->MaxOrderRef)+1];
+  strcpy(this->ORDER_REF, pRspUserLogin->MaxOrderRef);
         cerr << "--->>> " << "OnRspUserLogin3" << endl;
-		///获取当前交易日
-		Json::Value rspArgs;
+  ///获取当前交易日
+  Json::Value rspArgs;
         rspArgs["TradingDay"] = pRspUserLogin->TradingDay;
         rspArgs["LoginTime"] = pRspUserLogin->LoginTime;
         rspArgs["BrokerID"] = pRspUserLogin->BrokerID;
@@ -144,103 +144,183 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
         rspArgs["FrontID"] = pRspUserLogin->FrontID;
         rspArgs["SessionID"] = pRspUserLogin->SessionID;
         rspArgs["MaxOrderRef"] = pRspUserLogin->MaxOrderRef;
+        rspArgs["INETime"] = pRspUserLogin->INETime;
+        rspArgs["INETime"] = pRspUserLogin->INETime;
         rspArgs["SHFETime"] = pRspUserLogin->SHFETime;
         rspArgs["DCETime"] = pRspUserLogin->DCETime;
         rspArgs["CZCETime"] = pRspUserLogin->CZCETime;
         rspArgs["FFEXTime"] = pRspUserLogin->FFEXTime;
         rspArgs["INETime"] = pRspUserLogin->INETime;
         cerr << "--->>> 获取当前交易日 = " << pUserApi->GetTradingDay() << endl;
-		//std::string SIP_msg="xialei1981\r\n";
+  //std::string SIP_msg="xialei1981\r\n";
         m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspUserLogin","false",rspArgs).c_str()
-        		, websocketpp::frame::opcode::text);
-		///投资者结算结果确认,
-		//ReqSettlementInfoConfirm();
-	}
+          , websocketpp::frame::opcode::text);
+  ///投资者结算结果确认,
+  //ReqSettlementInfoConfirm();
+ }
 }
 
 void CTraderSpi::ReqSettlementInfoConfirm(Json::Value root)
 {
-	CThostFtdcSettlementInfoConfirmField req;
-	memset(&req, 0, sizeof(req));
-	strcpy(req.BrokerID, BROKER_ID);
-	strcpy(req.InvestorID, INVESTOR_ID);
-	int iResult = pUserApi->ReqSettlementInfoConfirm(&req, root["UniqueID"].asInt());
-	cerr << "--->>> 投资者结算结果确认: " << ((iResult == 0) ? "成功" : "失败") << endl;
+ CThostFtdcSettlementInfoConfirmField req;
+ memset(&req, 0, sizeof(req));
+ strcpy(req.BrokerID, BROKER_ID);
+ strcpy(req.InvestorID, INVESTOR_ID);
+ int iResult = pUserApi->ReqSettlementInfoConfirm(&req, root["UniqueID"].asInt());
+ cerr << "--->>> 投资者结算结果确认: " << ((iResult == 0) ? "成功" : "失败") << endl;
 }
 
 void CTraderSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pSettlementInfoConfirm, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
-	cerr << "--->>> " << "OnRspSettlementInfoConfirm" << endl;
-	if (bIsLast && !IsErrorRspInfo(pRspInfo))
-	{
-		///请求查询合约
-		ReqQryInstrument();
-	}
+ cerr << "--->>> " << "OnRspSettlementInfoConfirm" << endl;
+ if (bIsLast && !IsErrorRspInfo(pRspInfo))
+ {
+        Json::Value rspArgs;
+        rspArgs["BrokerID"] = pSettlementInfoConfirm->BrokerID;
+        rspArgs["InvestorID"] = pSettlementInfoConfirm->InvestorID;
+        rspArgs["ConfirmDate"] = pSettlementInfoConfirm->ConfirmDate;
+        rspArgs["ConfirmTime"] = pSettlementInfoConfirm->ConfirmTime;
+        
+        //cerr << "--->>> 获取当前交易日 = " << pUserApi->GetTradingDay() << endl;
+        //std::string SIP_msg="xialei1981\r\n";
+        m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspSettlementInfoConfirm","false",rspArgs).c_str()
+                , websocketpp::frame::opcode::text);
+  ///请求查询合约
+  ReqQryInstrument();
+ }
 }
 
 void CTraderSpi::ReqQryInstrument()
 {
-	CThostFtdcQryInstrumentField req;
-	memset(&req, 0, sizeof(req));
-	//add xialei strcpy(req.InstrumentID, INSTRUMENT_ID);
-	int iResult = pUserApi->ReqQryInstrument(&req, ++iRequestID);
-	cerr << "--->>> 请求查询合约: " << ((iResult == 0) ? "成功" : "失败") << endl;
+ CThostFtdcQryInstrumentField req;
+ memset(&req, 0, sizeof(req));
+ //add xialei strcpy(req.InstrumentID, INSTRUMENT_ID);
+ int iResult = pUserApi->ReqQryInstrument(&req, ++iRequestID);
+ cerr << "--->>> 请求查询合约: " << ((iResult == 0) ? "成功" : "失败") << endl;
 }
 
 void CTraderSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
-	cerr << "--->>> " << "OnRspQryInstrument" << endl;
-	if (bIsLast && !IsErrorRspInfo(pRspInfo))
-	{
-		///请求查询合约
-		ReqQryTradingAccount();
-	}
+  
+    ///获取当前交易日
+    Json::Value rspArgs;
+    rspArgs["InstrumentID"]=pInstrument->InstrumentID;
+rspArgs["ExchangeID"]=pInstrument->ExchangeID;
+rspArgs["InstrumentName"]=pInstrument->InstrumentName;
+rspArgs["ExchangeInstID"]=pInstrument->ExchangeInstID;
+rspArgs["ProductID"]=pInstrument->ProductID;
+rspArgs["ProductClass"]=pInstrument->ProductClass;
+rspArgs["DeliveryYear"]=pInstrument->DeliveryYear;
+rspArgs["DeliveryMonth"]=pInstrument->DeliveryMonth;
+rspArgs["MaxMarketOrderVolume"]=pInstrument->MaxMarketOrderVolume;
+rspArgs["MinMarketOrderVolume"]=pInstrument->MinMarketOrderVolume;
+rspArgs["MaxLimitOrderVolume"]=pInstrument->MaxLimitOrderVolume;
+rspArgs["MinLimitOrderVolume"]=pInstrument->MinLimitOrderVolume;
+rspArgs["VolumeMultiple"]=pInstrument->VolumeMultiple;
+rspArgs["PriceTick"]=pInstrument->PriceTick;
+rspArgs["CreateDate"]=pInstrument->CreateDate;
+rspArgs["OpenDate"]=pInstrument->OpenDate;
+rspArgs["ExpireDate"]=pInstrument->ExpireDate;
+rspArgs["StartDelivDate"]=pInstrument->StartDelivDate;
+rspArgs["EndDelivDate"]=pInstrument->EndDelivDate;
+rspArgs["InstLifePhase"]=pInstrument->InstLifePhase;
+rspArgs["IsTrading"]=pInstrument->IsTrading;
+rspArgs["PositionType"]=pInstrument->PositionType;
+rspArgs["PositionDateType"]=pInstrument->PositionDateType;
+rspArgs["LongMarginRatio"]=pInstrument->LongMarginRatio;
+rspArgs["ShortMarginRatio"]=pInstrument->ShortMarginRatio;
+rspArgs["MaxMarginSideAlgorithm"]=pInstrument->MaxMarginSideAlgorithm;
+rspArgs["UnderlyingInstrID"]=pInstrument->UnderlyingInstrID;
+rspArgs["StrikePrice"]=pInstrument->StrikePrice;
+rspArgs["OptionsType"]=pInstrument->OptionsType;
+rspArgs["UnderlyingMultiple"]=pInstrument->UnderlyingMultiple;
+rspArgs["CombinationType"]=pInstrument->CombinationType;
+ m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspQryInstrument","false",rspArgs).c_str()
+          , websocketpp::frame::opcode::text);
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->InstrumentID              << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->ExchangeID                 << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->InstrumentName            << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->ExchangeInstID            << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->ProductID                  << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->ProductClass              << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->DeliveryYear              << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->DeliveryMonth             << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->MaxMarketOrderVolume        << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->MinMarketOrderVolume        << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->MaxLimitOrderVolume         << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->MinLimitOrderVolume         << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->VolumeMultiple              << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->PriceTick                   << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->CreateDate                  << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->OpenDate                    << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->ExpireDate                  << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->StartDelivDate              << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->EndDelivDate                << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->InstLifePhase               << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->IsTrading                   << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->PositionType                << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->PositionDateType            << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->LongMarginRatio             << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->ShortMarginRatio            << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->MaxMarginSideAlgorithm      << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->UnderlyingInstrID           << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->StrikePrice                 << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->OptionsType                 << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->UnderlyingMultiple          << endl;
+cerr << "--->>> 获取当前交易品种 = " << pInstrument->CombinationType             << endl;
+
+ //if (bIsLast && !IsErrorRspInfo(pRspInfo))
+ //{
+  ///请求查询合约
+   //ReqQryTradingAccount();
+      //cerr << "--->>> " << "OnRspQryInstrument" << pInstrument->InstrumentID << endl;    //
+ //}
 }
 
 void CTraderSpi::ReqQryTradingAccount()
 {
-	CThostFtdcQryTradingAccountField req;
-	memset(&req, 0, sizeof(req));
-	strcpy(req.BrokerID, BROKER_ID);
-	strcpy(req.InvestorID, INVESTOR_ID);
-	int iResult = pUserApi->ReqQryTradingAccount(&req, ++iRequestID);
-	cerr << "--->>> 请求查询资金账户: " << ((iResult == 0) ? "成功" : "失败") << endl;
+ CThostFtdcQryTradingAccountField req;
+ memset(&req, 0, sizeof(req));
+ strcpy(req.BrokerID, BROKER_ID);
+ strcpy(req.InvestorID, INVESTOR_ID);
+ int iResult = pUserApi->ReqQryTradingAccount(&req, ++iRequestID);
+ cerr << "--->>> 请求查询资金账户: " << ((iResult == 0) ? "成功" : "失败") << endl;
 }
 
 void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAccount, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
-	cerr << "--->>> " << "OnRspQryTradingAccount" << endl;
-	if (bIsLast && !IsErrorRspInfo(pRspInfo))
-	{
-		///请求查询投资者持仓
-		ReqQryInvestorPosition();
-	}
+ cerr << "--->>> " << "OnRspQryTradingAccount" << endl;
+ if (bIsLast && !IsErrorRspInfo(pRspInfo))
+ {
+  ///请求查询投资者持仓
+  ReqQryInvestorPosition();
+ }
 }
 
 void CTraderSpi::ReqQryInvestorPosition()
 {
-	CThostFtdcQryInvestorPositionField req;
-	memset(&req, 0, sizeof(req));
-	strcpy(req.BrokerID, BROKER_ID);
-	strcpy(req.InvestorID, INVESTOR_ID);
-	//add xialei strcpy(req.InstrumentID, INSTRUMENT_ID);
-	int iResult = pUserApi->ReqQryInvestorPosition(&req, ++iRequestID);
-	cerr << "--->>> 请求查询投资者持仓: " << ((iResult == 0) ? "成功" : "失败") << endl;
+ CThostFtdcQryInvestorPositionField req;
+ memset(&req, 0, sizeof(req));
+ strcpy(req.BrokerID, BROKER_ID);
+ strcpy(req.InvestorID, INVESTOR_ID);
+ //add xialei strcpy(req.InstrumentID, INSTRUMENT_ID);
+ int iResult = pUserApi->ReqQryInvestorPosition(&req, ++iRequestID);
+ cerr << "--->>> 请求查询投资者持仓: " << ((iResult == 0) ? "成功" : "失败") << endl;
 }
 
 void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInvestorPosition, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
-	cerr << "--->>> " << "OnRspQryInvestorPosition" << endl;
-	if (bIsLast && !IsErrorRspInfo(pRspInfo))
-	{
+ cerr << "--->>> " << "OnRspQryInvestorPosition" << endl;
+ if (bIsLast && !IsErrorRspInfo(pRspInfo))
+ {
         
-	}
+ }
 }
 
 void CTraderSpi::ReqOrderInsert(Json::Value root)
 {
-	CThostFtdcInputOrderField req;
-	memset(&req, 0, sizeof(req));
+ CThostFtdcInputOrderField req;
+ memset(&req, 0, sizeof(req));
     ///经纪公司代码
     strcpy(req.BrokerID, BROKER_ID);
     ///投资者代码
@@ -297,16 +377,16 @@ void CTraderSpi::ReqOrderInsert(Json::Value root)
     ///用户强评标志: 否
     req.UserForceClose = 0;
 
-	lOrderTime=time(NULL);
-	int iResult = pUserApi->ReqOrderInsert(&req, ++iRequestID);
-	cerr << "--->>> 报单录入请求: " << ((iResult == 0) ? "成功" : "失败") << endl;
+ lOrderTime=time(NULL);
+ int iResult = pUserApi->ReqOrderInsert(&req, ++iRequestID);
+ cerr << "--->>> 报单录入请求: " << ((iResult == 0) ? "成功" : "失败") << endl;
 }
 
 void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
-	cerr << "--->>> " << "OnRspOrderInsert" << endl;
+ cerr << "--->>> " << "OnRspOrderInsert" << endl;
     Json::Value rspArgs;
-	if(IsErrorRspInfo(pRspInfo)){
+ if(IsErrorRspInfo(pRspInfo)){
         rspArgs["ErrorMsg"] = pRspInfo->ErrorMsg;
         m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspOrderInsert","true",rspArgs).c_str()
                 , websocketpp::frame::opcode::text);
@@ -315,63 +395,63 @@ void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThost
 
 void CTraderSpi::ReqOrderAction(CThostFtdcOrderField *pOrder)
 {
-	static bool ORDER_ACTION_SENT = false;		//是否发送了报单
-	if (ORDER_ACTION_SENT)
-		return;
+ static bool ORDER_ACTION_SENT = false;  //是否发送了报单
+ if (ORDER_ACTION_SENT)
+  return;
 
-	CThostFtdcInputOrderActionField req;
-	memset(&req, 0, sizeof(req));
-	///经纪公司代码
-	strcpy(req.BrokerID, pOrder->BrokerID);
-	///投资者代码
-	strcpy(req.InvestorID, pOrder->InvestorID);
-	///报单操作引用
-//	TThostFtdcOrderActionRefType	OrderActionRef;
-	///报单引用
-	strcpy(req.OrderRef, pOrder->OrderRef);
-	///请求编号
-//	TThostFtdcRequestIDType	RequestID;
-	///前置编号
-	req.FrontID = FRONT_ID;
-	///会话编号
-	req.SessionID = SESSION_ID;
-	///交易所代码
-//	TThostFtdcExchangeIDType	ExchangeID;
-	///报单编号
-//	TThostFtdcOrderSysIDType	OrderSysID;
-	///操作标志
-	req.ActionFlag = THOST_FTDC_AF_Delete;
+ CThostFtdcInputOrderActionField req;
+ memset(&req, 0, sizeof(req));
+ ///经纪公司代码
+ strcpy(req.BrokerID, pOrder->BrokerID);
+ ///投资者代码
+ strcpy(req.InvestorID, pOrder->InvestorID);
+ ///报单操作引用
+// TThostFtdcOrderActionRefType OrderActionRef;
+ ///报单引用
+ strcpy(req.OrderRef, pOrder->OrderRef);
+ ///请求编号
+// TThostFtdcRequestIDType RequestID;
+ ///前置编号
+ req.FrontID = FRONT_ID;
+ ///会话编号
+ req.SessionID = SESSION_ID;
+ ///交易所代码
+// TThostFtdcExchangeIDType ExchangeID;
+ ///报单编号
+// TThostFtdcOrderSysIDType OrderSysID;
+ ///操作标志
+ req.ActionFlag = THOST_FTDC_AF_Delete;
     ///删除 THOST_FTDC_AF_Delete '0'  修改 THOST_FTDC_AF_Modify '3'
-	///价格
-//	TThostFtdcPriceType	LimitPrice;
-	///数量变化
-//	TThostFtdcVolumeType	VolumeChange;
-	///用户代码
-//	TThostFtdcUserIDType	UserID;
-	///合约代码
-	strcpy(req.InstrumentID, pOrder->InstrumentID);
-	lOrderTime=time(NULL);
-	int iResult = pUserApi->ReqOrderAction(&req, ++iRequestID);
-	cerr << "--->>> 报单操作请求: " << ((iResult == 0) ? "成功" : "失败") << endl;
-	ORDER_ACTION_SENT = true;
+ ///价格
+// TThostFtdcPriceType LimitPrice;
+ ///数量变化
+// TThostFtdcVolumeType VolumeChange;
+ ///用户代码
+// TThostFtdcUserIDType UserID;
+ ///合约代码
+ strcpy(req.InstrumentID, pOrder->InstrumentID);
+ lOrderTime=time(NULL);
+ int iResult = pUserApi->ReqOrderAction(&req, ++iRequestID);
+ cerr << "--->>> 报单操作请求: " << ((iResult == 0) ? "成功" : "失败") << endl;
+ ORDER_ACTION_SENT = true;
 }
 
 void CTraderSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pInputOrderAction, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
-	cerr << "--->>> " << "OnRspOrderAction" << endl;
-	IsErrorRspInfo(pRspInfo);
+ cerr << "--->>> " << "OnRspOrderAction" << endl;
+ IsErrorRspInfo(pRspInfo);
 }
 
 
 ///报单通知
 void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
 {
-	cerr << "--->>> " << "OnRtnOrder"  << endl;
-	lOrderOkTime=time(NULL);
-	time_t lTime=lOrderOkTime-lOrderTime;
-	cerr << "--->>> 报单到报单通知的时间差 = " << lTime << endl;
-	if (IsMyOrder(pOrder))
-	{
+ cerr << "--->>> " << "OnRtnOrder"  << endl;
+ lOrderOkTime=time(NULL);
+ time_t lTime=lOrderOkTime-lOrderTime;
+ cerr << "--->>> 报单到报单通知的时间差 = " << lTime << endl;
+ if (IsMyOrder(pOrder))
+ {
         Json::Value rspArgs;
         rspArgs["RequestID"] = pOrder->RequestID;
         rspArgs["OrderLocalID"] = pOrder->OrderLocalID;
@@ -420,19 +500,19 @@ void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
                 , websocketpp::frame::opcode::text);
 
     }
-	if (IsTradingOrder(pOrder))
-	{
-			//ReqOrderAction(pOrder);
-	}
+ if (IsTradingOrder(pOrder))
+ {
+   //ReqOrderAction(pOrder);
+ }
     else if (pOrder->OrderStatus == THOST_FTDC_OST_Canceled){
-			cout << "--->>> 撤单成功" << endl;
-	}
+   cout << "--->>> 撤单成功" << endl;
+ }
 }
 
 ///成交通知
 void CTraderSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 {
-	cerr << "--->>> " << "OnRtnTrade"  << endl;
+ cerr << "--->>> " << "OnRtnTrade"  << endl;
     if(true){
         Json::Value rspArgs;
         rspArgs["BrokerID"] = pTrade->BrokerID;
@@ -471,20 +551,20 @@ void CTraderSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 
 void CTraderSpi:: OnFrontDisconnected(int nReason)
 {
-	cerr << "--->>> " << "OnFrontDisconnected" << endl;
-	cerr << "--->>> Reason = " << nReason << endl;
+ cerr << "--->>> " << "OnFrontDisconnected" << endl;
+ cerr << "--->>> Reason = " << nReason << endl;
 }
-		
+  
 void CTraderSpi::OnHeartBeatWarning(int nTimeLapse)
 {
-	cerr << "--->>> " << "OnHeartBeatWarning" << endl;
-	cerr << "--->>> nTimerLapse = " << nTimeLapse << endl;
+ cerr << "--->>> " << "OnHeartBeatWarning" << endl;
+ cerr << "--->>> nTimerLapse = " << nTimeLapse << endl;
 }
 
 void CTraderSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
-	cerr << "--->>> " << "OnRspError" << endl;
-	if(IsErrorRspInfo(pRspInfo)){
+ cerr << "--->>> " << "OnRspError" << endl;
+ if(IsErrorRspInfo(pRspInfo)){
       Json::Value rspArgs;
       rspArgs["ErrorMsg"] = pRspInfo->ErrorMsg;
       m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspError","true",rspArgs).c_str()
@@ -494,24 +574,24 @@ void CTraderSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bo
 
 bool CTraderSpi::IsErrorRspInfo(CThostFtdcRspInfoField *pRspInfo)
 {
-	// 如果ErrorID != 0, 说明收到了错误的响应
-	bool bResult = ((pRspInfo) && (pRspInfo->ErrorID != 0));
-	if (bResult)
-		cerr << "--->>> ErrorID=" << pRspInfo->ErrorID << ", ErrorMsg=" << pRspInfo->ErrorMsg << endl;
-	return bResult;
+ // 如果ErrorID != 0, 说明收到了错误的响应
+ bool bResult = ((pRspInfo) && (pRspInfo->ErrorID != 0));
+ if (bResult)
+  cerr << "--->>> ErrorID=" << pRspInfo->ErrorID << ", ErrorMsg=" << pRspInfo->ErrorMsg << endl;
+ return bResult;
 }
 
 bool CTraderSpi::IsMyOrder(CThostFtdcOrderField *pOrder)
 {
-	return ((pOrder->FrontID == FRONT_ID) &&
-			(pOrder->SessionID == SESSION_ID) &&
-			(strcmp(pOrder->OrderRef, ORDER_REF) == 0));
+ return ((pOrder->FrontID == FRONT_ID) &&
+   (pOrder->SessionID == SESSION_ID) &&
+   (strcmp(pOrder->OrderRef, ORDER_REF) == 0));
 }
 
 bool CTraderSpi::IsTradingOrder(CThostFtdcOrderField *pOrder)
 {
-	return ((pOrder->OrderStatus != THOST_FTDC_OST_PartTradedNotQueueing) &&
-			(pOrder->OrderStatus != THOST_FTDC_OST_Canceled) &&
-			(pOrder->OrderStatus != THOST_FTDC_OST_AllTraded));
+ return ((pOrder->OrderStatus != THOST_FTDC_OST_PartTradedNotQueueing) &&
+   (pOrder->OrderStatus != THOST_FTDC_OST_Canceled) &&
+   (pOrder->OrderStatus != THOST_FTDC_OST_AllTraded));
 }
 
