@@ -3,13 +3,17 @@
 #include <cstdlib>
 #include <errno.h>
 #include <iostream>
+#include <iconv.h>
+
+#include <sstream>
 
 #include <json/json.h>
 
 using namespace std;
 
-
+#include "Boost_Tools.h" 
 #include "../TraderAPI/ThostFtdcTraderApi.h"
+
 #include  "TraderSpi.h"
 #include <time.h>
 
@@ -30,7 +34,7 @@ extern TThostFtdcDirectionType DIRECTION; // 买卖方向
 
 // 请求编号
 int iRequestID=0;
-
+using namespace boost::locale::conv;  
 // 会话参数
 //TThostFtdcFrontIDType FRONT_ID; //前置编号//
 //TThostFtdcSessionIDType SESSION_ID; //会话编号
@@ -69,10 +73,11 @@ std::string CTraderSpi::getJsonStr(int uniqueID,std::string rspType,std::string 
     root["RspType"]  =rspType;
     root["IsError"]  =isError;
     
- std::string out;
+ std::string out;//UTF8String 
  try  
-    {  
-    //root.toStyledString();
+    { 
+    //cerr << "--->>> " <<rspArgs["InstrumentName"]<< "OnFrontConnected="<<root.toStyledString() << endl; 
+    //printf();
     Json::StreamWriterBuilder wbuilder;
     wbuilder["indentation"] = "";
     out = Json::writeString(wbuilder, root);
@@ -92,7 +97,6 @@ void CTraderSpi::OnFrontConnected()
  cerr << "--->>> " << "OnFrontConnected" << endl;
  ReqUserLogin(loginID);
  ///用户登录请求
- 
 }
 
 void CTraderSpi::ReqUserLogin(int loginID)
@@ -133,31 +137,31 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
   //cerr << "--->>> " << "OnRspUserLogin5" << endl;
   this->ORDER_REF = new char[strlen(pRspUserLogin->MaxOrderRef)+1];
   strcpy(this->ORDER_REF, pRspUserLogin->MaxOrderRef);
-        cerr << "--->>> " << "OnRspUserLogin3" << endl;
+  cerr << "--->>> " << "OnRspUserLogin3" << endl;
   ///获取当前交易日
   Json::Value rspArgs;
-        rspArgs["TradingDay"] = pRspUserLogin->TradingDay;
-        rspArgs["LoginTime"] = pRspUserLogin->LoginTime;
-        rspArgs["BrokerID"] = pRspUserLogin->BrokerID;
-        rspArgs["UserID"] = pRspUserLogin->UserID;
-        rspArgs["SystemName"] = pRspUserLogin->SystemName;
-        rspArgs["FrontID"] = pRspUserLogin->FrontID;
-        rspArgs["SessionID"] = pRspUserLogin->SessionID;
-        rspArgs["MaxOrderRef"] = pRspUserLogin->MaxOrderRef;
-        rspArgs["INETime"] = pRspUserLogin->INETime;
-        rspArgs["INETime"] = pRspUserLogin->INETime;
-        rspArgs["SHFETime"] = pRspUserLogin->SHFETime;
-        rspArgs["DCETime"] = pRspUserLogin->DCETime;
-        rspArgs["CZCETime"] = pRspUserLogin->CZCETime;
-        rspArgs["FFEXTime"] = pRspUserLogin->FFEXTime;
-        rspArgs["INETime"] = pRspUserLogin->INETime;
-        cerr << "--->>> 获取当前交易日 = " << pUserApi->GetTradingDay() << endl;
+  rspArgs["TradingDay"] = pRspUserLogin->TradingDay;
+  rspArgs["LoginTime"] = pRspUserLogin->LoginTime;
+  rspArgs["BrokerID"] = pRspUserLogin->BrokerID;
+  rspArgs["UserID"] = pRspUserLogin->UserID;
+  rspArgs["SystemName"] = pRspUserLogin->SystemName;
+  rspArgs["FrontID"] = pRspUserLogin->FrontID;
+  rspArgs["SessionID"] = pRspUserLogin->SessionID;
+  rspArgs["MaxOrderRef"] = pRspUserLogin->MaxOrderRef;
+  rspArgs["INETime"] = pRspUserLogin->INETime;
+  rspArgs["INETime"] = pRspUserLogin->INETime;
+  rspArgs["SHFETime"] = pRspUserLogin->SHFETime;
+  rspArgs["DCETime"] = pRspUserLogin->DCETime;
+  rspArgs["CZCETime"] = pRspUserLogin->CZCETime;
+  rspArgs["FFEXTime"] = pRspUserLogin->FFEXTime;
+  rspArgs["INETime"] = pRspUserLogin->INETime;
+  cerr << "--->>> 获取当前交易日 = " << pUserApi->GetTradingDay() << endl;
   //std::string SIP_msg="xialei1981\r\n";
-        m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspUserLogin","false",rspArgs).c_str()
-          , websocketpp::frame::opcode::text);
+  m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspUserLogin","false",rspArgs).c_str()
+    , websocketpp::frame::opcode::text);
   ///投资者结算结果确认,
   //ReqSettlementInfoConfirm();
- }
+}
 }
 
 void CTraderSpi::ReqSettlementInfoConfirm(Json::Value root)
@@ -186,11 +190,11 @@ void CTraderSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField
         m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspSettlementInfoConfirm","false",rspArgs).c_str()
                 , websocketpp::frame::opcode::text);
   ///请求查询合约
-  ReqQryInstrument();
+  //ReqQryInstrument();
  }
 }
 
-void CTraderSpi::ReqQryInstrument()
+void CTraderSpi::ReqQryInstrument(Json::Value root)
 {
  CThostFtdcQryInstrumentField req;
  memset(&req, 0, sizeof(req));
@@ -199,75 +203,85 @@ void CTraderSpi::ReqQryInstrument()
  cerr << "--->>> 请求查询合约: " << ((iResult == 0) ? "成功" : "失败") << endl;
 }
 
+
+//中文需要先转utf-8
+//
+std::string boosttoolsnamespace::CBoostTools::gbktoutf8(std::string const &text)  
+{  
+    std::string const &to_encoding("UTF-8");  
+    std::string const &from_encoding("GBK");  
+    method_type how = default_method;  
+    return boost::locale::conv::between(text.c_str(), text.c_str() + text.size(), to_encoding, from_encoding, how);  
+}  
+
 void CTraderSpi::OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
-  
-    ///获取当前交易日
-    Json::Value rspArgs;
-    rspArgs["InstrumentID"]=pInstrument->InstrumentID;
-rspArgs["ExchangeID"]=pInstrument->ExchangeID;
-rspArgs["InstrumentName"]=pInstrument->InstrumentName;
-rspArgs["ExchangeInstID"]=pInstrument->ExchangeInstID;
-rspArgs["ProductID"]=pInstrument->ProductID;
-rspArgs["ProductClass"]=pInstrument->ProductClass;
-rspArgs["DeliveryYear"]=pInstrument->DeliveryYear;
-rspArgs["DeliveryMonth"]=pInstrument->DeliveryMonth;
-rspArgs["MaxMarketOrderVolume"]=pInstrument->MaxMarketOrderVolume;
-rspArgs["MinMarketOrderVolume"]=pInstrument->MinMarketOrderVolume;
-rspArgs["MaxLimitOrderVolume"]=pInstrument->MaxLimitOrderVolume;
-rspArgs["MinLimitOrderVolume"]=pInstrument->MinLimitOrderVolume;
-rspArgs["VolumeMultiple"]=pInstrument->VolumeMultiple;
-rspArgs["PriceTick"]=pInstrument->PriceTick;
-rspArgs["CreateDate"]=pInstrument->CreateDate;
-rspArgs["OpenDate"]=pInstrument->OpenDate;
-rspArgs["ExpireDate"]=pInstrument->ExpireDate;
-rspArgs["StartDelivDate"]=pInstrument->StartDelivDate;
-rspArgs["EndDelivDate"]=pInstrument->EndDelivDate;
-rspArgs["InstLifePhase"]=pInstrument->InstLifePhase;
-rspArgs["IsTrading"]=pInstrument->IsTrading;
-rspArgs["PositionType"]=pInstrument->PositionType;
-rspArgs["PositionDateType"]=pInstrument->PositionDateType;
-rspArgs["LongMarginRatio"]=pInstrument->LongMarginRatio;
-rspArgs["ShortMarginRatio"]=pInstrument->ShortMarginRatio;
-rspArgs["MaxMarginSideAlgorithm"]=pInstrument->MaxMarginSideAlgorithm;
-rspArgs["UnderlyingInstrID"]=pInstrument->UnderlyingInstrID;
-rspArgs["StrikePrice"]=pInstrument->StrikePrice;
-rspArgs["OptionsType"]=pInstrument->OptionsType;
-rspArgs["UnderlyingMultiple"]=pInstrument->UnderlyingMultiple;
-rspArgs["CombinationType"]=pInstrument->CombinationType;
- m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspQryInstrument","false",rspArgs).c_str()
-          , websocketpp::frame::opcode::text);
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->InstrumentID              << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->ExchangeID                 << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->InstrumentName            << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->ExchangeInstID            << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->ProductID                  << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->ProductClass              << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->DeliveryYear              << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->DeliveryMonth             << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->MaxMarketOrderVolume        << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->MinMarketOrderVolume        << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->MaxLimitOrderVolume         << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->MinLimitOrderVolume         << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->VolumeMultiple              << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->PriceTick                   << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->CreateDate                  << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->OpenDate                    << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->ExpireDate                  << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->StartDelivDate              << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->EndDelivDate                << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->InstLifePhase               << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->IsTrading                   << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->PositionType                << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->PositionDateType            << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->LongMarginRatio             << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->ShortMarginRatio            << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->MaxMarginSideAlgorithm      << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->UnderlyingInstrID           << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->StrikePrice                 << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->OptionsType                 << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->UnderlyingMultiple          << endl;
-cerr << "--->>> 获取当前交易品种 = " << pInstrument->CombinationType             << endl;
+
+  Json::Value rspArgs;
+  rspArgs["InstrumentID"]=pInstrument->InstrumentID;
+  rspArgs["ExchangeID"]=pInstrument->ExchangeID;
+  rspArgs["InstrumentName"]=boosttoolsnamespace::CBoostTools::gbktoutf8(pInstrument->InstrumentName);//out;;
+  rspArgs["ExchangeInstID"]=pInstrument->ExchangeInstID;
+  rspArgs["ProductID"]=pInstrument->ProductID;
+  rspArgs["ProductClass"]=pInstrument->ProductClass;
+  rspArgs["DeliveryYear"]=pInstrument->DeliveryYear;
+  rspArgs["DeliveryMonth"]=pInstrument->DeliveryMonth;
+  rspArgs["MaxMarketOrderVolume"]=pInstrument->MaxMarketOrderVolume;
+  rspArgs["MinMarketOrderVolume"]=pInstrument->MinMarketOrderVolume;
+  rspArgs["MaxLimitOrderVolume"]=pInstrument->MaxLimitOrderVolume;
+  rspArgs["MinLimitOrderVolume"]=pInstrument->MinLimitOrderVolume;
+  rspArgs["VolumeMultiple"]=pInstrument->VolumeMultiple;
+  rspArgs["PriceTick"]=pInstrument->PriceTick;
+  rspArgs["CreateDate"]=pInstrument->CreateDate;
+  rspArgs["OpenDate"]=pInstrument->OpenDate;
+  rspArgs["ExpireDate"]=pInstrument->ExpireDate;
+  rspArgs["StartDelivDate"]=pInstrument->StartDelivDate;
+  rspArgs["EndDelivDate"]=pInstrument->EndDelivDate;
+  rspArgs["InstLifePhase"]=pInstrument->InstLifePhase;
+  rspArgs["IsTrading"]=pInstrument->IsTrading;
+  rspArgs["PositionType"]=pInstrument->PositionType;
+  rspArgs["PositionDateType"]=pInstrument->PositionDateType;
+  rspArgs["LongMarginRatio"]=pInstrument->LongMarginRatio;
+  rspArgs["ShortMarginRatio"]=pInstrument->ShortMarginRatio;
+  rspArgs["MaxMarginSideAlgorithm"]=pInstrument->MaxMarginSideAlgorithm;
+  rspArgs["UnderlyingInstrID"]=pInstrument->UnderlyingInstrID;
+  rspArgs["StrikePrice"]=pInstrument->StrikePrice;
+  rspArgs["OptionsType"]=pInstrument->OptionsType;
+  rspArgs["UnderlyingMultiple"]=pInstrument->UnderlyingMultiple;
+  rspArgs["CombinationType"]=pInstrument->CombinationType;
+  m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspQryInstrument","false",rspArgs).c_str()
+    , websocketpp::frame::opcode::text);
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->InstrumentID              << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->ExchangeID                 << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->InstrumentName            << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->ExchangeInstID            << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->ProductID                  << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->ProductClass              << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->DeliveryYear              << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->DeliveryMonth             << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->MaxMarketOrderVolume        << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->MinMarketOrderVolume        << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->MaxLimitOrderVolume         << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->MinLimitOrderVolume         << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->VolumeMultiple              << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->PriceTick                   << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->CreateDate                  << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->OpenDate                    << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->ExpireDate                  << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->StartDelivDate              << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->EndDelivDate                << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->InstLifePhase               << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->IsTrading                   << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->PositionType                << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->PositionDateType            << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->LongMarginRatio             << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->ShortMarginRatio            << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->MaxMarginSideAlgorithm      << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->UnderlyingInstrID           << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->StrikePrice                 << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->OptionsType                 << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->UnderlyingMultiple          << endl;
+  cerr << "--->>> 获取当前交易品种 = " << pInstrument->CombinationType             << endl;
 
  //if (bIsLast && !IsErrorRspInfo(pRspInfo))
  //{
@@ -277,7 +291,7 @@ cerr << "--->>> 获取当前交易品种 = " << pInstrument->CombinationType            
  //}
 }
 
-void CTraderSpi::ReqQryTradingAccount()
+void CTraderSpi::ReqQryTradingAccount(Json::Value root)
 {
  CThostFtdcQryTradingAccountField req;
  memset(&req, 0, sizeof(req));
@@ -293,11 +307,11 @@ void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingA
  if (bIsLast && !IsErrorRspInfo(pRspInfo))
  {
   ///请求查询投资者持仓
-  ReqQryInvestorPosition();
+  //ReqQryInvestorPosition();
  }
 }
 
-void CTraderSpi::ReqQryInvestorPosition()
+void CTraderSpi::ReqQryInvestorPosition(Json::Value root)
 {
  CThostFtdcQryInvestorPositionField req;
  memset(&req, 0, sizeof(req));
@@ -319,8 +333,8 @@ void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInve
 
 void CTraderSpi::ReqOrderInsert(Json::Value root)
 {
- CThostFtdcInputOrderField req;
- memset(&req, 0, sizeof(req));
+    CThostFtdcInputOrderField req;
+    //memset(&req, 0, sizeof(req));
     ///经纪公司代码
     strcpy(req.BrokerID, BROKER_ID);
     ///投资者代码
@@ -377,10 +391,10 @@ void CTraderSpi::ReqOrderInsert(Json::Value root)
     ///用户强评标志: 否
     req.UserForceClose = 0;
 
- lOrderTime=time(NULL);
- int iResult = pUserApi->ReqOrderInsert(&req, ++iRequestID);
- cerr << "--->>> 报单录入请求: " << ((iResult == 0) ? "成功" : "失败") << endl;
-}
+    lOrderTime=time(NULL);
+    int iResult = pUserApi->ReqOrderInsert(&req, ++iRequestID);
+    cerr << "--->>> 报单录入请求: " << ((iResult == 0) ? "成功" : "失败") << endl;
+  }
 
 void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {

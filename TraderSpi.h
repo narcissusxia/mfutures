@@ -82,11 +82,11 @@ public:
 	///投资者结算结果确认
 	void ReqSettlementInfoConfirm(Json::Value root);
 	///请求查询合约
-	void ReqQryInstrument();
+	void ReqQryInstrument(Json::Value root);
 	///请求查询资金账户
-	void ReqQryTradingAccount();
+	void ReqQryTradingAccount(Json::Value root);
 	///请求查询投资者持仓
-	void ReqQryInvestorPosition();
+	void ReqQryInvestorPosition(Json::Value root);
 	///报单录入请求
 	void ReqOrderInsert(Json::Value root);
 	///报单操作请求

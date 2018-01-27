@@ -177,20 +177,6 @@ int main(int argc, char* argv[]) {
         uri = argv[1];
     }
 
-    const char* str =   
-      "{\"praenomen\":\"Gaius\",\"nomen\":\"Julius\",\"cognomen\":\"Caezar\","  
-      "\"born\":-100,\"died\":-44}";
-
-    Json::Value root = readStrJson(str);  
-      
-    string praenomen = root["praenomen"].asString();  
-    string nomen = root["nomen"].asString();  
-    string cognomen = root["cognomen"].asString();  
-    int born = root["born"].asInt();  
-    int died = root["died"].asInt();  
-    cout << praenomen + " " + nomen + " " + cognomen  
-          << " was born in year " << born   
-          << ", died in year " << died << endl;  
 
   //pUserApi->Join();
   //pUserApi->Release();
