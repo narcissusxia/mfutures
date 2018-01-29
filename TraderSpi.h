@@ -11,8 +11,8 @@ class CTraderSpi : public CThostFtdcTraderSpi
 
 
 public:
-	
-
+ 
+    CTraderSpi (CThostFtdcTraderApi *pUserApi) : t_pUserApi (pUserApi) {} 
 	~CTraderSpi(){}
 	///当客户端与交易后台建立起通信连接时（还未登录前），该方法被调用。
 	virtual void OnFrontConnected();
@@ -53,12 +53,6 @@ public:
 	///成交通知
 	virtual void OnRtnTrade(CThostFtdcTradeField *pTrade);
 
-	virtual void setWebsocket(client* c,websocketpp::connection_hdl hdl);
-
-    virtual void setUserLoginInfo(int loginID,const char* BROKER_ID,const char* INVESTOR_ID,const char*  PASSWORD);
-	///用户登录请求
-	void ReqUserLogin(int loginID);
-
     virtual std::string getJsonStr(int uniqueID,std::string rspType,std::string isError,Json::Value rspArgs);
 
 public:
@@ -78,6 +72,12 @@ public:
 
     int loginID;
 
+    ///用户登录请求
+	void ReqUserLogin(int loginID);
+
+	virtual void setWebsocket(client* c,websocketpp::connection_hdl hdl);
+
+    virtual void setUserLoginInfo(int loginID,const char* BROKER_ID,const char* INVESTOR_ID,const char*  PASSWORD);
 	
 	///投资者结算结果确认
 	void ReqSettlementInfoConfirm(Json::Value root);
@@ -100,7 +100,8 @@ public:
 	bool IsTradingOrder(CThostFtdcOrderField *pOrder);
 
 	// 指向CThostFtdcMdApi实例的指针 
-    CThostFtdcTraderApi *m_pUserApi ; 
+    CThostFtdcTraderApi *t_pUserApi; 
 };
- 
+
+
 #endif

@@ -13,6 +13,7 @@
 #include <json/json.h>
 
 #include "TraderSpi.h"
+#include "MdSpi.h"
 
 using namespace std;  
 
@@ -20,52 +21,20 @@ using namespace std;
 using websocketpp::lib::placeholders::_1;
 using websocketpp::lib::placeholders::_2;
 using websocketpp::lib::bind;
-// UserApi对象
-CThostFtdcTraderApi* pUserApi;
-CTraderSpi* sh;
+
+
+CThostFtdcTraderApi* pTraderApi;
+CThostFtdcMdApi* pMdApi;
+
+CTraderSpi* spi;
+CMdSpi* mdspi;
 client c;
 
 // pull out the type of messages sent by our config
 typedef websocketpp::config::asio_client::message_type::ptr message_ptr;
 
 websocketpp::connection_hdl m_hdl;
-// This message handler will be invoked once for each incoming message. It
-// prints the message and then sends a copy of the message back to the server.
-/**
-void CTraderSpi::OnFrontConnected()
-{
-       printf("OnFrontConnected:called.\n");
-       static int i = 0;
-       // 在登出后系统会重新调用OnFrontConnected，这里简单判断并忽略第1次之后的所有调用。
-       if (i++==0) {
-           printf("OnFrontConnected:called.\n");
-            //sem_post(&sem);
-       }
-       std::string SIP_msg="xialei1981\r\n";
-       c.send(m_hdl, SIP_msg.c_str(), websocketpp::frame::opcode::text);
-        
-       
-};
 
-void CTraderSpi::ReqUserLogin()
-{
-  CThostFtdcReqUserLoginField req;
-  //memset(&req, 0, sizeof(req));
-  //strcpy(req.BrokerID, BROKER_ID);
-  //strcpy(req.UserID, INVESTOR_ID);
-  //strcpy(req.Password, PASSWORD);
-  //int iResult = pUserApi->ReqUserLogin(&req, ++iRequestID);
-  cerr << "--->>> 发送用户登录请求: "  << endl;
-}
-
-void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
-    CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
-{
-  cerr << "--->>> " << "OnRspUserLogin" << endl;
-   
-}
-
-*/
 
 //JsonCpp
 Json::Value readStrJson(const std::string& str)   
@@ -103,26 +72,50 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
       cout  <<"BROKER_ID=" <<root["ReqArgs"]["BROKER_ID"].asString().c_str()<< endl;
       cout  <<"INVESTOR_ID=" << root["ReqArgs"]["INVESTOR_ID"].asString().c_str()<< endl;
       cout  <<"PASSWORD=" << root["ReqArgs"]["PASSWORD"].asString().c_str()<< endl;
-      pUserApi = CThostFtdcTraderApi::CreateFtdcTraderApi();      // 创建UserApi
-      sh= new CTraderSpi();
-      pUserApi->RegisterSpi ((CThostFtdcTraderSpi*)sh);   
+      //pUserApi = CThostFtdcTraderApi::CreateFtdcTraderApi();      // 创建UserApi
+      //sh= new CTraderSpi();
+      //pUserApi->RegisterSpi ((CThostFtdcTraderSpi*)sh);   
       //如果webservice打开,给交易系统赋websocket值
-      sh->setWebsocket(c,hdl);
-      sh->setUserLoginInfo(loginID,root["ReqArgs"]["BROKER_ID"].asString().c_str()
+      spi->setWebsocket(c,hdl);
+      spi->setUserLoginInfo(loginID,root["ReqArgs"]["BROKER_ID"].asString().c_str()
           ,root["ReqArgs"]["INVESTOR_ID"].asString().c_str(),root["ReqArgs"]["PASSWORD"].asString().c_str());
       //启动Websocket
-      pUserApi->RegisterFront(addr);
-      pUserApi->Init(); 
+      pTraderApi->RegisterFront(addr);
+      pTraderApi->Init(); 
+    }//行情登录请求
+    if (root["ReqType"].asString() == "MdReqUserLogin") {
+      pMdApi = CThostFtdcMdApi::CreateFtdcMdApi ();
+      mdspi = new CMdSpi(pMdApi);
+      //sh= new CTraderSpi();
+      pMdApi->RegisterSpi((CThostFtdcMdSpi*)mdspi);   
+      std::string saddr = root["ReqArgs"]["MarketUrl"].asString();
+      char* addr;  
+      const int len = saddr.length();  
+      addr=new char[len+1];  
+      strcpy(addr,saddr.c_str());
+      cout  <<"md addr=" << addr << endl;  
+      
+      const int loginID = root["UniqueID"].asInt();
+      //如果webservice打开,给交易系统赋websocket值
+      mdspi->setWebsocket(c,hdl);
+      mdspi->setUserLoginInfo(loginID,root["ReqArgs"]["BROKER_ID"].asString().c_str()
+          ,root["ReqArgs"]["INVESTOR_ID"].asString().c_str(),root["ReqArgs"]["PASSWORD"].asString().c_str());
+      //启动Websocket
+      pMdApi->RegisterFront(addr);
+      pMdApi->Init(); 
     }//报单确认
     else if(root["ReqType"].asString() == "ReqSettlementInfoConfirm"){
-      sh->ReqSettlementInfoConfirm(root);
+      spi->ReqSettlementInfoConfirm(root);
     }
     //下单请求
     else if(root["ReqType"].asString() == "ReqOrderInsert"){
-      sh->ReqOrderInsert(root);
+      spi->ReqOrderInsert(root);
     }//撤单请求
     else if(root["ReqType"].asString() == "ReqOrderInsert"){
-      sh->ReqOrderInsert(root);
+      spi->ReqOrderInsert(root);
+    }//订阅请求
+    else if(root["ReqType"].asString() == "MdSubscribeMarketData"){
+      mdspi->MdSubscribeMarketData(root);
     }
 
     websocketpp::lib::error_code ec;
@@ -143,22 +136,23 @@ void on_open(client* c, websocketpp::connection_hdl hdl) {
     // now it is safe to use the connection
     // 初始化UserApi
   std::cout << "Websocket connection ready" << std::endl;
-  pUserApi = CThostFtdcTraderApi::CreateFtdcTraderApi();      // 创建UserApi
-  sh= new CTraderSpi();
-  pUserApi->RegisterSpi ((CThostFtdcTraderSpi*)sh);   
+  pTraderApi = CThostFtdcTraderApi::CreateFtdcTraderApi();      // 创建UserApi
+  spi = new CTraderSpi(pTraderApi);
+  //sh= new CTraderSpi();
+  pTraderApi->RegisterSpi ((CThostFtdcTraderSpi*)spi);   
   //CTraderSpi* pUserSpi = new CTraderSpi();
 
   //pUserApi->RegisterSpi((CThostFtdcTraderSpi*)pUserSpi);      // 注册事件类
   //pUserApi->SubscribePublicTopic(TERT_RESTART);         // 注册公有流
   //pUserApi->SubscribePrivateTopic(TERT_RESTART);          // 注册私有流
-  printf("usereed:\n");
+  //printf("usereed:\n");
   
   // 等待服务器发出登录消息
   //sem_wait(&sem);
   
   
     //如果webservice打开,给交易系统赋值
-  sh->setWebsocket(c,hdl);
+  //spi->setWebsocket(c,hdl);
     //received=false;
     // Send a SIP OPTIONS message to the server:
   
