@@ -383,8 +383,8 @@ void CTraderSpi::ReqOrderInsert(Json::Value root)
     req.UserForceClose = 0;
 
     lOrderTime=time(NULL);
-    int iResult = t_pUserApi->ReqOrderInsert(&req, ++iRequestID);
-    cerr << "--->>> 报单录入请求: " << ((iResult == 0) ? "成功" : "失败") << endl;
+    int iResult = t_pUserApi->ReqOrderInsert(&req,root["UniqueID"].asInt());
+    cerr << "--->>> 报单录入请求: "<<root["UniqueID"].asInt()<<";xx=" << ((iResult == 0) ? "成功" : "失败") << endl;
   }
 
 void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
@@ -451,13 +451,15 @@ void CTraderSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pInputOrderAc
 ///报单通知
 void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
 {
- cerr << "--->>> " << "OnRtnOrder"  << endl;
+ cerr << "--->>> " << "OnRtnOrder="<<pOrder->RequestID << endl;
  lOrderOkTime=time(NULL);
  time_t lTime=lOrderOkTime-lOrderTime;
  cerr << "--->>> 报单到报单通知的时间差 = "<<pOrder->StatusMsg  << endl;
  //if (IsMyOrder(pOrder))
  //{
         Json::Value rspArgs;
+        
+        rspArgs["OrderRef"] = pOrder->OrderRef;
         rspArgs["RequestID"] = pOrder->RequestID;
         rspArgs["OrderLocalID"] = pOrder->OrderLocalID;
         rspArgs["ExchangeID"] = pOrder->ExchangeID;
@@ -488,7 +490,7 @@ void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
         rspArgs["FrontID"] = pOrder->FrontID;
         rspArgs["SessionID"] = pOrder->SessionID;
         rspArgs["UserProductInfo"] = pOrder->UserProductInfo;
-        rspArgs["StatusMsg"] = pOrder->StatusMsg;
+        rspArgs["StatusMsg"] = boosttoolsnamespace::CBoostTools::gbktoutf8(pOrder->StatusMsg);
         rspArgs["UserForceClose"] = pOrder->UserForceClose;
         rspArgs["ActiveUserID"] = pOrder->ActiveUserID;
         rspArgs["BrokerOrderSeq"] = pOrder->BrokerOrderSeq;
