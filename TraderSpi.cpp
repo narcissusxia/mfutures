@@ -199,7 +199,7 @@ void CTraderSpi::ReqQryInstrument(Json::Value root)
  CThostFtdcQryInstrumentField req;
  memset(&req, 0, sizeof(req));
  //add xialei strcpy(req.InstrumentID, INSTRUMENT_ID);
- int iResult = t_pUserApi->ReqQryInstrument(&req, ++iRequestID);
+ int iResult = t_pUserApi->ReqQryInstrument(&req, root["UniqueID"].asInt());
  cerr << "--->>> 请求查询合约: " << ((iResult == 0) ? "成功" : "失败") << endl;
 }
 
@@ -297,17 +297,62 @@ void CTraderSpi::ReqQryTradingAccount(Json::Value root)
  memset(&req, 0, sizeof(req));
  strcpy(req.BrokerID, BROKER_ID);
  strcpy(req.InvestorID, INVESTOR_ID);
- int iResult = t_pUserApi->ReqQryTradingAccount(&req, ++iRequestID);
+ int iResult = t_pUserApi->ReqQryTradingAccount(&req,root["UniqueID"].asInt());
  cerr << "--->>> 请求查询资金账户: " << ((iResult == 0) ? "成功" : "失败") << endl;
 }
 
 void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAccount, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
  cerr << "--->>> " << "OnRspQryTradingAccount" << endl;
- if (bIsLast && !IsErrorRspInfo(pRspInfo))
+ Json::Value rspArgs;
+ if (!IsErrorRspInfo(pRspInfo))
  {
-  ///请求查询投资者持仓
-  //ReqQryInvestorPosition();
+    rspArgs["AccountID"]=pTradingAccount->AccountID;
+    rspArgs["PreMortgage"]=pTradingAccount->PreMortgage;
+    rspArgs["PreCredit"]=pTradingAccount->PreCredit;
+    rspArgs["PreDeposit"]=pTradingAccount->PreDeposit;
+    rspArgs["PreBalance"]=pTradingAccount->PreBalance;
+    rspArgs["PreMargin"]=pTradingAccount->PreMargin;
+    rspArgs["InterestBase"]=pTradingAccount->InterestBase;
+    rspArgs["Interest"]=pTradingAccount->Interest;
+    rspArgs["Deposit"]=pTradingAccount->Deposit;
+    rspArgs["Withdraw"]=pTradingAccount->Withdraw;
+    rspArgs["FrozenMargin"]=pTradingAccount->FrozenMargin;
+    rspArgs["FrozenCash"]=pTradingAccount->FrozenCash;
+    rspArgs["FrozenCommission"]=pTradingAccount->FrozenCommission;
+    rspArgs["CurrMargin"]=pTradingAccount->CurrMargin;
+    rspArgs["CashIn"]=pTradingAccount->CashIn;
+    rspArgs["Commission"]=pTradingAccount->Commission;
+    rspArgs["CloseProfit"]=pTradingAccount->CloseProfit;
+    rspArgs["PositionProfit"]=pTradingAccount->PositionProfit;
+    rspArgs["Balance"]=pTradingAccount->Balance;
+    rspArgs["Available"]=pTradingAccount->Available;
+    rspArgs["WithdrawQuota"]=pTradingAccount->WithdrawQuota;
+    rspArgs["Reserve"]=pTradingAccount->Reserve;
+    rspArgs["TradingDay"]=pTradingAccount->TradingDay;
+    rspArgs["SettlementID"]=pTradingAccount->SettlementID;
+    rspArgs["Credit"]=pTradingAccount->Credit;
+    rspArgs["Mortgage"]=pTradingAccount->Mortgage;
+    rspArgs["ExchangeMargin"]=pTradingAccount->ExchangeMargin;
+    rspArgs["DeliveryMargin"]=pTradingAccount->DeliveryMargin;
+    rspArgs["ExchangeDeliveryMargin"]=pTradingAccount->ExchangeDeliveryMargin;
+    rspArgs["ReserveBalance"]=pTradingAccount->ReserveBalance;
+    rspArgs["CurrencyID"]=pTradingAccount->CurrencyID;
+    rspArgs["PreFundMortgageIn"]=pTradingAccount->PreFundMortgageIn;
+    rspArgs["PreFundMortgageOut"]=pTradingAccount->PreFundMortgageOut;
+    rspArgs["FundMortgageAvailable"]=pTradingAccount->FundMortgageAvailable;
+    rspArgs["MortgageableFund"]=pTradingAccount->MortgageableFund;
+    rspArgs["SpecProductMargin"]=pTradingAccount->SpecProductMargin;
+    rspArgs["SpecProductCommission"]=pTradingAccount->SpecProductCommission;
+    rspArgs["SpecProductFrozenCommission"]=pTradingAccount->SpecProductFrozenCommission;
+    rspArgs["SpecProductPositionProfit"]=pTradingAccount->SpecProductPositionProfit;
+    rspArgs["SpecProductCloseProfit"]=pTradingAccount->SpecProductCloseProfit;
+    rspArgs["SpecProductPositionProfitByAlg"]=pTradingAccount->SpecProductPositionProfitByAlg;
+    rspArgs["SpecProductExchangeMargin"]=pTradingAccount->SpecProductExchangeMargin;
+
+    m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspQryTradingAccount","true",rspArgs).c_str()
+                , websocketpp::frame::opcode::text);
+
  }
 }
 
@@ -325,9 +370,59 @@ void CTraderSpi::ReqQryInvestorPosition(Json::Value root)
 void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInvestorPosition, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
  cerr << "--->>> " << "OnRspQryInvestorPosition" << endl;
- if (bIsLast && !IsErrorRspInfo(pRspInfo))
- {
-        
+ Json::Value rspArgs;
+ //if (bIsLast && !IsErrorRspInfo(pRspInfo))
+ //{
+
+ if(IsErrorRspInfo(pRspInfo)){
+      
+    rspArgs["InstrumentID"]=pInvestorPosition->InstrumentID;
+    rspArgs["BrokerID"]=pInvestorPosition->BrokerID;
+    rspArgs["InvestorID"]=pInvestorPosition->InvestorID;
+    rspArgs["PosiDirection"]=pInvestorPosition->PosiDirection;
+    rspArgs["HedgeFlag"]=pInvestorPosition->HedgeFlag;
+    rspArgs["PositionDate"]=pInvestorPosition->PositionDate;
+    rspArgs["YdPosition"]=pInvestorPosition->YdPosition;
+    rspArgs["Position"]=pInvestorPosition->Position;
+    rspArgs["LongFrozen"]=pInvestorPosition->LongFrozen;
+    rspArgs["ShortFrozen"]=pInvestorPosition->ShortFrozen;
+    rspArgs["LongFrozenAmount"]=pInvestorPosition->LongFrozenAmount;
+    rspArgs["ShortFrozenAmount"]=pInvestorPosition->ShortFrozenAmount;
+    rspArgs["OpenVolume"]=pInvestorPosition->OpenVolume;
+    rspArgs["CloseVolume"]=pInvestorPosition->CloseVolume;
+    rspArgs["OpenAmount"]=pInvestorPosition->OpenAmount;
+    rspArgs["CloseAmount"]=pInvestorPosition->CloseAmount;
+    rspArgs["PositionCost"]=pInvestorPosition->PositionCost;
+    rspArgs["PreMargin"]=pInvestorPosition->PreMargin;
+    rspArgs["UseMargin"]=pInvestorPosition->UseMargin;
+    rspArgs["FrozenMargin"]=pInvestorPosition->FrozenMargin;
+    rspArgs["FrozenCash"]=pInvestorPosition->FrozenCash;
+    rspArgs["FrozenCommission"]=pInvestorPosition->FrozenCommission;
+    rspArgs["CashIn"]=pInvestorPosition->CashIn;
+    rspArgs["Commission"]=pInvestorPosition->Commission;
+    rspArgs["CloseProfit"]=pInvestorPosition->CloseProfit;
+    rspArgs["PositionProfit"]=pInvestorPosition->PositionProfit;
+    rspArgs["PreSettlementPrice"]=pInvestorPosition->PreSettlementPrice;
+    rspArgs["SettlementPrice"]=pInvestorPosition->SettlementPrice;
+    rspArgs["TradingDay"]=pInvestorPosition->TradingDay;
+    rspArgs["SettlementID"]=pInvestorPosition->SettlementID;
+    rspArgs["OpenCost"]=pInvestorPosition->OpenCost;
+    rspArgs["ExchangeMargin"]=pInvestorPosition->ExchangeMargin;
+    rspArgs["CombPosition"]=pInvestorPosition->CombPosition;
+    rspArgs["CombLongFrozen"]=pInvestorPosition->CombLongFrozen;
+    rspArgs["CombShortFrozen"]=pInvestorPosition->CombShortFrozen;
+    rspArgs["CloseProfitByDate"]=pInvestorPosition->CloseProfitByDate;
+    rspArgs["CloseProfitByTrade"]=pInvestorPosition->CloseProfitByTrade;
+    rspArgs["TodayPosition"]=pInvestorPosition->TodayPosition;
+    rspArgs["MarginRateByMoney"]=pInvestorPosition->MarginRateByMoney;
+    rspArgs["MarginRateByVolume"]=pInvestorPosition->MarginRateByVolume;
+    rspArgs["StrikeFrozen"]=pInvestorPosition->StrikeFrozen;
+    rspArgs["StrikeFrozenAmount"]=pInvestorPosition->StrikeFrozenAmount;
+    rspArgs["AbandonFrozen"]=pInvestorPosition->AbandonFrozen;
+
+    //rspArgs["ErrorMsg"] = pRspInfo->ErrorMsg;
+    m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspQryInvestorPosition","true",rspArgs).c_str()
+                , websocketpp::frame::opcode::text);
  }
 }
 
@@ -390,12 +485,12 @@ void CTraderSpi::ReqOrderInsert(Json::Value root)
 void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
  cerr << "--->>> " << "OnRspOrderInsert" << endl;
-    Json::Value rspArgs;
+ Json::Value rspArgs;
  if(IsErrorRspInfo(pRspInfo)){
         rspArgs["ErrorMsg"] = pRspInfo->ErrorMsg;
         m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspOrderInsert","true",rspArgs).c_str()
                 , websocketpp::frame::opcode::text);
-    }
+ }
 }
 
 void CTraderSpi::ReqOrderAction(CThostFtdcOrderField *pOrder)
@@ -466,6 +561,7 @@ void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
         rspArgs["ParticipantID"] = pOrder->ParticipantID;
         rspArgs["ClientID"] =pOrder->ClientID;
         rspArgs["ExchangeInstID"] = pOrder->ExchangeInstID;
+        //rspArgs["TradeID"] = pOrder->TradeID;
         rspArgs["TraderID"] = pOrder->TraderID;
         rspArgs["InstallID"] = pOrder->InstallID;
         rspArgs["OrderSubmitStatus"] = pOrder->OrderSubmitStatus;
@@ -551,12 +647,14 @@ void CTraderSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
         rspArgs["SettlementID"] = pTrade->SettlementID;
         rspArgs["BrokerOrderSeq"] = pTrade->BrokerOrderSeq;
         rspArgs["TradeSource"] = pTrade->TradeSource;
+        rspArgs["ExchangeID"] = pTrade->ExchangeID;
+        
         m_client->send(m_hdl, getJsonStr(0,"OnRtnTrade","false",rspArgs).c_str()
                 , websocketpp::frame::opcode::text);
     }
 }
 
-void CTraderSpi:: OnFrontDisconnected(int nReason)
+void CTraderSpi::OnFrontDisconnected(int nReason)
 {
  cerr << "--->>> " << "OnFrontDisconnected" << endl;
  cerr << "--->>> Reason = " << nReason << endl;
@@ -573,10 +671,10 @@ void CTraderSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bo
  cerr << "--->>> " << "OnRspError" << endl;
  if(IsErrorRspInfo(pRspInfo)){
       Json::Value rspArgs;
-      rspArgs["ErrorMsg"] = pRspInfo->ErrorMsg;
+      rspArgs["ErrorMsg"] = boosttoolsnamespace::CBoostTools::gbktoutf8(pRspInfo->ErrorMsg);
       m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspError","true",rspArgs).c_str()
                 , websocketpp::frame::opcode::text);
-    }
+ }
 }
 
 bool CTraderSpi::IsErrorRspInfo(CThostFtdcRspInfoField *pRspInfo)
@@ -584,7 +682,8 @@ bool CTraderSpi::IsErrorRspInfo(CThostFtdcRspInfoField *pRspInfo)
  // 如果ErrorID != 0, 说明收到了错误的响应
  bool bResult = ((pRspInfo) && (pRspInfo->ErrorID != 0));
  if (bResult)
-  cerr << "--->>> ErrorID=" << pRspInfo->ErrorID << ", ErrorMsg=" << pRspInfo->ErrorMsg << endl;
+  cerr << "--->>> ErrorID=" << pRspInfo->ErrorID << ", ErrorMsg=" 
+    <<  boosttoolsnamespace::CBoostTools::gbktoutf8(pRspInfo->ErrorMsg) << endl;
  return bResult;
 }
 

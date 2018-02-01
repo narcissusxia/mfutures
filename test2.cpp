@@ -116,7 +116,14 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
     }//订阅请求
     else if(root["ReqType"].asString() == "MdSubscribeMarketData"){
       mdspi->MdSubscribeMarketData(root);
+    }//查询资金账户
+    else if(root["ReqType"].asString() == "ReqQryTradingAccount"){
+      spi->ReqQryTradingAccount(root);
+    }//查询投资者持仓
+    else if(root["ReqType"].asString() == "ReqQryInvestorPosition"){
+      spi->ReqQryInvestorPosition(root);
     }
+    
 
     websocketpp::lib::error_code ec;
     cout  <<"key=" << root["ReqType"].asString()
@@ -124,11 +131,11 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
 
     // 访问节点，Return the member named key if it exist, defaultValue otherwise.  
     //code = root.get("uploadid", "null").asString();  
-
+/**
     c->send(hdl, msg->get_payload(), msg->get_opcode(), ec);
     if (ec) {
         std::cout << "Echo failed because: " << ec.message() << std::endl;
-    }
+    }*/
 }
 
 
