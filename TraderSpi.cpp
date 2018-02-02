@@ -319,6 +319,8 @@ void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingA
  Json::Value rspArgs;
  if (!IsErrorRspInfo(pRspInfo))
  {
+  
+    rspArgs["BrokerID"]=pTradingAccount->BrokerID;
     rspArgs["AccountID"]=pTradingAccount->AccountID;
     rspArgs["PreMortgage"]=pTradingAccount->PreMortgage;
     rspArgs["PreCredit"]=pTradingAccount->PreCredit;
