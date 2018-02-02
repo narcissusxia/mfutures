@@ -41,6 +41,9 @@ class CMdSpi : public CThostFtdcMdSpi
     virtual void OnHeartBeatWarning(int nTimeLapse);
     ///用户登录请求
 	virtual void MdReqUserLogin(Json::Value root);
+	///用户登出请求
+	virtual void MdReqUserLogout();
+
     ///订阅请求
     virtual void MdSubscribeMarketData(Json::Value root);
 	//virtual void MdSubMarketData(Json::Value root);

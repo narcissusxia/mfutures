@@ -72,6 +72,17 @@ void CMdSpi::OnFrontConnected()
       m_pUserApi->ReqUserLogin (&req, ++iRequestID); 
 }
 
+void CMdSpi::MdReqUserLogout()
+{
+	CThostFtdcUserLogoutField req;
+	memset(&req, 0, sizeof(req));
+	strcpy(req.BrokerID, BROKER_ID);
+	strcpy(req.UserID, INVESTOR_ID);
+	//strcpy(req.Password, PASSWORD);
+	cerr <<m_pUserApi<<endl;
+	int iResult = m_pUserApi->ReqUserLogout(&req, ++iRequestID);
+	cerr << "--->>> 发送用户登出请求: " << ((iResult == 0) ? "成功" : "失败") << endl;
+}
 
 void CMdSpi::MdReqUserLogin(Json::Value root)
 {
@@ -138,6 +149,7 @@ double filterDouble(double a){
 
 void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData)
 {
+	/**
 	cerr << "OnRtnDepthMarketData" << endl;
 	printf ("E输出报单录入结果\n");     
 	printf("交易日：【%s】\n",pDepthMarketData->TradingDay);
@@ -166,7 +178,7 @@ void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketDa
 	printf("x2：【%d】\n",pDepthMarketData->AskVolume1 ); 
 	printf("x3：【%f】\n",filterDouble(pDepthMarketData->BidPrice2) ); 
 	printf("x4：【%d】\n",pDepthMarketData->BidVolume2 ); 
-
+*/
 
 	Json::Value rspArgs;
 	rspArgs["TradingDay"]=pDepthMarketData->TradingDay;

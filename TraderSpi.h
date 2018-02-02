@@ -75,6 +75,9 @@ public:
     ///用户登录请求
 	void ReqUserLogin(int loginID);
 
+	///用户登录请求
+	void ReqUserLogout();
+
 	virtual void setWebsocket(client* c,websocketpp::connection_hdl hdl);
 
     virtual void setUserLoginInfo(int loginID,const char* BROKER_ID,const char* INVESTOR_ID,const char*  PASSWORD);

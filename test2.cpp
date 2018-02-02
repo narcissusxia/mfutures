@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <json/json.h>
+#include <unistd.h>
 
 #include "TraderSpi.h"
 #include "MdSpi.h"
@@ -28,7 +29,8 @@ CThostFtdcMdApi* pMdApi;
 
 CTraderSpi* spi;
 CMdSpi* mdspi;
-client c;
+client mc;
+std::string uri = "ws://192.168.1.6:8080/futures/websocket/cppclient001";
 
 // pull out the type of messages sent by our config
 typedef websocketpp::config::asio_client::message_type::ptr message_ptr;
@@ -76,6 +78,11 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
       //sh= new CTraderSpi();
       //pUserApi->RegisterSpi ((CThostFtdcTraderSpi*)sh);   
       //如果webservice打开,给交易系统赋websocket值
+      if (!( NULL == pTraderApi) )
+      pTraderApi->Release();
+      pTraderApi = CThostFtdcTraderApi::CreateFtdcTraderApi();      // 创建UserApi
+      spi = new CTraderSpi(pTraderApi);
+      pTraderApi->RegisterSpi ((CThostFtdcTraderSpi*)spi); 
       spi->setWebsocket(c,hdl);
       spi->setUserLoginInfo(loginID,root["ReqArgs"]["BROKER_ID"].asString().c_str()
           ,root["ReqArgs"]["INVESTOR_ID"].asString().c_str(),root["ReqArgs"]["PASSWORD"].asString().c_str());
@@ -123,7 +130,7 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
     else if(root["ReqType"].asString() == "ReqQryInvestorPosition"){
       spi->ReqQryInvestorPosition(root);
     }
-    
+
 
     websocketpp::lib::error_code ec;
     cout  <<"key=" << root["ReqType"].asString()
@@ -138,41 +145,87 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
     }*/
 }
 
+bool status = false;
 
 void on_open(client* c, websocketpp::connection_hdl hdl) {
     // now it is safe to use the connection
     // 初始化UserApi
+  status = true;
   std::cout << "Websocket connection ready" << std::endl;
-  pTraderApi = CThostFtdcTraderApi::CreateFtdcTraderApi();      // 创建UserApi
-  spi = new CTraderSpi(pTraderApi);
-  //sh= new CTraderSpi();
-  pTraderApi->RegisterSpi ((CThostFtdcTraderSpi*)spi);   
-  //CTraderSpi* pUserSpi = new CTraderSpi();
-
-  //pUserApi->RegisterSpi((CThostFtdcTraderSpi*)pUserSpi);      // 注册事件类
-  //pUserApi->SubscribePublicTopic(TERT_RESTART);         // 注册公有流
-  //pUserApi->SubscribePrivateTopic(TERT_RESTART);          // 注册私有流
-  //printf("usereed:\n");
   
-  // 等待服务器发出登录消息
-  //sem_wait(&sem);
-  
-  
-    //如果webservice打开,给交易系统赋值
-  //spi->setWebsocket(c,hdl);
-    //received=false;
-    // Send a SIP OPTIONS message to the server:
-  
-   
 }
 
+void on_fail(client * c, websocketpp::connection_hdl hdl) {
+       
+    cout << "have client on_fail" << endl;
+    client::connection_ptr con = c->get_con_from_hdl(hdl);
+    std::cout << "on_fail："<< con->get_response_header("Server")<<" "<<con->get_ec().message()<< std::endl; 
+}
+
+void on_close(client *c, websocketpp::connection_hdl hdl)
+{ 
+
+   //退出登录
+  
+  
+ /**
+   if (!( NULL == mdspi) )
+   mdspi->MdReqUserLogout();
+*/
+   status = false;
+   cout << "have client on_close" << endl;
+   client mmc;
+   mmc.set_access_channels(websocketpp::log::alevel::all);
+    mmc.clear_access_channels(websocketpp::log::alevel::frame_payload);
+
+    // Initialize ASIO
+    mmc.init_asio();
+
+    // Register our message handler
+    mmc.set_message_handler(bind(&on_message,&mmc,::_1,::_2));
+    mmc.set_open_handler(bind(&on_open,&mmc,::_1));
+    // Register our close handler
+    mmc.set_close_handler(bind(&on_close, &mmc, _1));
+    mmc.set_fail_handler(bind(&on_close, &mmc, _1));
+
+   client::connection_ptr con;
+   
+   websocketpp::lib::error_code ec;
+   con = mmc.get_connection(uri, ec);
+   if (ec) {
+          std::cout << " connection error: " << ec.message() << std::endl;
+   }
+  
+   while(!status){
+      
+      sleep(10);
+    
+      mmc.connect(con);
+      mmc.run();
+      //spi->setWebsocket(c,c->get_hdl());
+      std::cout  << "close code: "  << con->get_remote_close_reason();
+
+      
+   }
+   //c->connect(con);
+   //c->connect(con);
+   std::cout << "wait for connection run:"<<uri << std::endl;
+  
+   //
+
+        // Start the ASIO io_service run loop
+        // this will cause a single connection to be made to the server. c.run()
+        // will exit when this connection is closed.
+   
+
+}
 
 int main(int argc, char* argv[]) {
     // Create a client endpoint
   
 
     //std::string uri = "ws://47.96.149.27/bb/futures/websocket/cppclient";
-    std::string uri = "ws://192.168.1.6:8080/futures/websocket/cppclient001";
+    
 
     if (argc == 2) {
         uri = argv[1];
@@ -184,18 +237,21 @@ int main(int argc, char* argv[]) {
 
   try {
         // Set logging to be pretty verbose (everything except message payloads)
-    c.set_access_channels(websocketpp::log::alevel::all);
-    c.clear_access_channels(websocketpp::log::alevel::frame_payload);
+    mc.set_access_channels(websocketpp::log::alevel::all);
+    mc.clear_access_channels(websocketpp::log::alevel::frame_payload);
 
     // Initialize ASIO
-    c.init_asio();
+    mc.init_asio();
 
     // Register our message handler
-    c.set_message_handler(bind(&on_message,&c,::_1,::_2));
-    c.set_open_handler(bind(&on_open,&c,::_1));
+    mc.set_message_handler(bind(&on_message,&mc,::_1,::_2));
+    mc.set_open_handler(bind(&on_open,&mc,::_1));
+    // Register our close handler
+    mc.set_close_handler(bind(&on_close, &mc, _1));
+    mc.set_fail_handler(bind(&on_close, &mc, _1));
 
     websocketpp::lib::error_code ec;
-    client::connection_ptr con = c.get_connection(uri, ec);
+    client::connection_ptr con = mc.get_connection(uri, ec);
     if (ec) {
             std::cout << "could not create connection because: " << ec.message() << std::endl;
             return 0;
@@ -203,12 +259,15 @@ int main(int argc, char* argv[]) {
 
         // Note that connect here only requests a connection. No network messages are
         // exchanged until the event loop starts running in the next line.
-    c.connect(con);
+    mc.connect(con);
+    std::cout  << "connect: " <<  con->get_state() << " ("
+              << websocketpp::close::status::get_string(con->get_remote_close_code())
+              << "), close reason: " << con->get_remote_close_reason();
 
         // Start the ASIO io_service run loop
         // this will cause a single connection to be made to the server. c.run()
         // will exit when this connection is closed.
-    c.run();
+    mc.run();
     
     } catch (websocketpp::exception const & e) {
         std::cout << e.what() << std::endl;
