@@ -675,6 +675,11 @@ void CTraderSpi::OnFrontDisconnected(int nReason)
 {
  cerr << "--->>> " << "OnFrontDisconnected" << endl;
  cerr << "--->>> Reason = " << nReason << endl;
+ Json::Value rspArgs;
+ rspArgs["InvestorID"] =INVESTOR_ID;
+ rspArgs["Reason"] = nReason;
+ m_client->send(m_hdl, getJsonStr(0,"OnFrontDisconnected","false",rspArgs).c_str()
+                , websocketpp::frame::opcode::text);
 }
   
 void CTraderSpi::OnHeartBeatWarning(int nTimeLapse)
