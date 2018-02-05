@@ -182,7 +182,7 @@ void on_close(client *c, websocketpp::connection_hdl hdl)
   mmc.set_open_handler(bind(&on_open,&mmc,::_1));
     // Register our close handler
   mmc.set_close_handler(bind(&on_close, &mmc, _1));
-  mmc.set_fail_handler(bind(&on_close, &mmc, _1));
+  mmc.set_fail_handler(bind(&on_fail, &mmc, _1));
 
   client::connection_ptr con;
    
