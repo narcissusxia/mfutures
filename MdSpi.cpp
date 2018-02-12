@@ -35,7 +35,7 @@ std::string CMdSpi::getJsonStr(int uniqueID,std::string rspType,std::string isEr
         return out;
         
     } 
-    std::cout << "'" << out << "'" << std::endl;
+    //std::cout << "'" << out << "'" << std::endl;
     return out;
 }
 
@@ -79,7 +79,7 @@ void CMdSpi::MdReqUserLogout()
 	strcpy(req.BrokerID, BROKER_ID);
 	strcpy(req.UserID, INVESTOR_ID);
 	//strcpy(req.Password, PASSWORD);
-	cerr <<m_pUserApi<<endl;
+	//cerr <<m_pUserApi<<endl;
 	int iResult = m_pUserApi->ReqUserLogout(&req, ++iRequestID);
 	cerr << "--->>> 发送用户登出请求: " << ((iResult == 0) ? "成功" : "失败") << endl;
 }
@@ -99,7 +99,7 @@ void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
 		CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
 
-    cerr << "--->>> OnRspUserLogin"   << endl;
+    //cerr << "--->>> OnRspUserLogin"   << endl;
 	Json::Value rspArgs;
 	rspArgs["TradingDay"] = pRspUserLogin->TradingDay;
 	rspArgs["LoginTime"] = pRspUserLogin->LoginTime;
@@ -143,42 +143,18 @@ void CMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificIn
 }
 
 double filterDouble(double a){
+	//if (a == NULL)
+	//	return 0;
 	if (a > 10000000000000.0 )
 		return -1.0;
+	else
+		return a;
 }
 
 void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData)
 {
-	/**
+	
 	cerr << "OnRtnDepthMarketData" << endl;
-	printf ("E输出报单录入结果\n");     
-	printf("交易日：【%s】\n",pDepthMarketData->TradingDay);
-	printf("合约代码：【%s】\n",pDepthMarketData->InstrumentID);  
-	printf("交易所代码：【%s】\n",pDepthMarketData->ExchangeID);  
-	printf("合约在交易所的代码：【%s】\n",pDepthMarketData->ExchangeInstID);   
-	printf("最新价：【%f】\n",pDepthMarketData->LastPrice );  
-	printf("上次结算价：【%f】\n",pDepthMarketData->PreSettlementPrice );
-	printf("昨收盘：【%f】\n",pDepthMarketData->PreClosePrice);  
-	printf("昨持仓量：【%f】\n",pDepthMarketData->PreOpenInterest);  
-	printf("今开盘：【%f】\n",pDepthMarketData->OpenPrice ); 
-	printf("最高价：【%f】\n",pDepthMarketData->HighestPrice );
-	printf("最低价：【%f】\n",pDepthMarketData->LowestPrice );
-	printf("数量：【%d】\n",pDepthMarketData->Volume );
-	printf("成交金额：【%f】\n",pDepthMarketData->Turnover ); 
-	printf("持仓量：【%f】\n",pDepthMarketData->OpenInterest );  
-	printf("今收盘：【%f】\n",filterDouble(pDepthMarketData->ClosePrice) );  
-	printf("本次结算价：【%f】\n",filterDouble(pDepthMarketData->SettlementPrice)); 
-	printf("涨停板价：【%f】\n",filterDouble(pDepthMarketData->UpperLimitPrice) ); 
-	printf("跌停板价：【%f】\n",filterDouble(pDepthMarketData->LowerLimitPrice )); 
-	printf("昨虚实度：【%f】\n",filterDouble(pDepthMarketData->PreDelta) ); 
-	printf("今虚实度：【%f】\n",filterDouble(pDepthMarketData->CurrDelta )); 
-	printf("最后修改时间：【%s】\n",pDepthMarketData->UpdateTime ); 
-	printf("最后修改毫秒：【%d】\n",pDepthMarketData->UpdateMillisec ); 
-	printf("x1：【%f】\n",filterDouble(pDepthMarketData->AskPrice1 )); 
-	printf("x2：【%d】\n",pDepthMarketData->AskVolume1 ); 
-	printf("x3：【%f】\n",filterDouble(pDepthMarketData->BidPrice2) ); 
-	printf("x4：【%d】\n",pDepthMarketData->BidVolume2 ); 
-*/
 
 	Json::Value rspArgs;
 	rspArgs["TradingDay"]=pDepthMarketData->TradingDay;
@@ -193,7 +169,7 @@ void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketDa
 	rspArgs["HighestPrice"]=filterDouble(pDepthMarketData->HighestPrice);
 	rspArgs["LowestPrice"]=filterDouble(pDepthMarketData->LowestPrice);
 	rspArgs["Volume"]=pDepthMarketData->Volume;
-	rspArgs["Turnover"]=pDepthMarketData->Turnover;
+	rspArgs["Turnover"]=filterDouble(pDepthMarketData->Turnover);
 	rspArgs["OpenInterest"]=filterDouble(pDepthMarketData->OpenInterest);
 	rspArgs["ClosePrice"]=filterDouble(pDepthMarketData->ClosePrice);
 	rspArgs["SettlementPrice"]=filterDouble(pDepthMarketData->SettlementPrice);
@@ -226,9 +202,44 @@ void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketDa
 	rspArgs["AveragePrice"]=filterDouble(pDepthMarketData->AveragePrice);
 	rspArgs["ActionDay"]=pDepthMarketData->ActionDay;
 	//cerr << "--->>> 获取当前交易日 = " << pUserApi->GetTradingDay() << endl;
-    
+	/**
+    printf ("E输出报单录入结果\n");     
+	printf("交易日：【%s】\n",pDepthMarketData->TradingDay);
+	printf("合约代码：【%s】\n",pDepthMarketData->InstrumentID);  
+	printf("交易所代码：【%s】\n",pDepthMarketData->ExchangeID);  
+	printf("合约在交易所的代码：【%s】\n",pDepthMarketData->ExchangeInstID);   
+	printf("最新价：【%f】\n",pDepthMarketData->LastPrice );  
+	printf("上次结算价：【%f】\n",pDepthMarketData->PreSettlementPrice );
+	printf("昨收盘：【%f】\n",pDepthMarketData->PreClosePrice);  
+	printf("昨持仓量：【%f】\n",pDepthMarketData->PreOpenInterest);  
+	printf("今开盘：【%f】\n",filterDouble(pDepthMarketData->OpenPrice) ); 
+	printf("最高价：【%f】\n",filterDouble(pDepthMarketData->HighestPrice) );
+	printf("最低价：【%f】\n",filterDouble(pDepthMarketData->LowestPrice) );
+	printf("数量：【%d】\n",pDepthMarketData->Volume );
+	printf("成交金额：【%f】\n",pDepthMarketData->Turnover ); 
+	printf("持仓量：【%f】\n",filterDouble(pDepthMarketData->OpenInterest) );  
+	printf("今收盘：【%f】\n",filterDouble(pDepthMarketData->ClosePrice) );  
+	printf("本次结算价：【%f】\n",filterDouble(pDepthMarketData->SettlementPrice)); 
+	printf("涨停板价：【%f】\n",filterDouble(pDepthMarketData->UpperLimitPrice) ); 
+	printf("跌停板价：【%f】\n",filterDouble(pDepthMarketData->LowerLimitPrice )); 
+	printf("昨虚实度：【%f】\n",filterDouble(pDepthMarketData->PreDelta) ); 
+	printf("今虚实度：【%f】\n",filterDouble(pDepthMarketData->CurrDelta )); 
+	printf("最后修改时间：【%s】\n",pDepthMarketData->UpdateTime ); 
+	printf("最后修改毫秒：【%d】\n",pDepthMarketData->UpdateMillisec ); 
+	printf("x1：【%f】\n",filterDouble(pDepthMarketData->AskPrice1 )); 
+	printf("x1：【%d】\n",pDepthMarketData->AskVolume1 ); 
+	printf("x2：【%f】\n",filterDouble(pDepthMarketData->BidPrice2) ); 
+	printf("x2：【%d】\n",pDepthMarketData->BidVolume2 ); 
+	printf("x3：【%f】\n",filterDouble(pDepthMarketData->BidPrice3) ); 
+	printf("x3：【%d】\n",pDepthMarketData->BidVolume3 ); 
+	printf("x4：【%f】\n",filterDouble(pDepthMarketData->BidPrice4) ); 
+	printf("x4：【%d】\n",pDepthMarketData->BidVolume4 ); 
+	printf("x5：【%f】\n",filterDouble(pDepthMarketData->BidPrice5) ); 
+	printf("x5：【%d】\n",pDepthMarketData->BidVolume5 ); 
+	*/
 	m_client->send(m_hdl, getJsonStr(0,"OnRtnDepthMarketData","false",rspArgs).c_str()
 		, websocketpp::frame::opcode::text);
+
 
 }
 

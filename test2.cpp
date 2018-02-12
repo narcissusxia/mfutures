@@ -131,12 +131,14 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
     }//查询投资者持仓
     else if(root["ReqType"].asString() == "ReqQryInvestorPosition"){
       spi->ReqQryInvestorPosition(root);
+    }else if(root["ReqType"].asString() == "OnConnect"){
+       spi->onRspConnect(root);
     }
 
 
-    websocketpp::lib::error_code ec;
-    cout  <<"key=" << root["ReqType"].asString()
-         << endl;  
+    //websocketpp::lib::error_code ec;
+    //cout  <<"key=" << root["ReqType"].asString()
+    //     << endl;  
 
     // 访问节点，Return the member named key if it exist, defaultValue otherwise.  
     //code = root.get("uploadid", "null").asString();  
@@ -171,9 +173,16 @@ void on_close(client *c, websocketpp::connection_hdl hdl)
   status = false;
   cout << "have client on_close" << endl;
   client mmc;
-  mmc.set_access_channels(websocketpp::log::alevel::all);
-  mmc.clear_access_channels(websocketpp::log::alevel::frame_payload);
+  //mmc.set_access_channels(websocketpp::log::alevel::none);
+  //mmc.clear_access_channels(websocketpp::log::alevel::frame_payload);
+  mmc.clear_access_channels(websocketpp::log::alevel::all);
+  //mmc.set_access_channels(websocketpp::log::alevel::frame_header);
+  //mmc.clear_error_channels(websocketpp::log::elevel::all);
 
+  //mmc.set_error_channels(websocketpp::log::elevel::all);
+  //mmc.set_access_channels(websocketpp::log::alevel::all ^ websocketpp::log::alevel::frame_payload);
+
+  //mmc.set_error_channels(websocketpp::log::elevel::none);
     // Initialize ASIO
   mmc.init_asio();
 
@@ -231,8 +240,10 @@ int main(int argc, char* argv[]) {
 
   try {
         // Set logging to be pretty verbose (everything except message payloads)
-    mc.set_access_channels(websocketpp::log::alevel::all);
-    mc.clear_access_channels(websocketpp::log::alevel::frame_payload);
+    mc.clear_access_channels(websocketpp::log::alevel::all);
+    //mc.clear_access_channels(websocketpp::log::alevel::frame_payload);
+
+
 
     // Initialize ASIO
     mc.init_asio();

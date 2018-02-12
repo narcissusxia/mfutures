@@ -70,6 +70,8 @@ public:
     int	    SESSION_ID;	//会话编号
     char*	ORDER_REF;	//报单引用
 
+    char* loginStatus = new char[2];
+
     int loginID;
 
     ///用户登录请求
@@ -77,6 +79,8 @@ public:
 
 	///用户登录请求
 	void ReqUserLogout();
+	//
+    void onRspConnect(Json::Value root);
 
 	virtual void setWebsocket(client* c,websocketpp::connection_hdl hdl);
 

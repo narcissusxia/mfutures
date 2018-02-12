@@ -48,6 +48,7 @@ time_t lOrderTime;
 time_t lOrderOkTime;
 
 
+
 void CTraderSpi::setWebsocket(client* c,websocketpp::connection_hdl hdl)
 {  
  m_client = c; m_hdl =hdl;
@@ -95,9 +96,26 @@ std::string CTraderSpi::getJsonStr(int uniqueID,std::string rspType,std::string 
 void CTraderSpi::OnFrontConnected()
 {
  cerr << "--->>> " << "OnFrontConnected" << endl;
+
+ 
+ strcpy(loginStatus,"N");
+ ///用户登录请求
  ReqUserLogin(loginID);
+ 
+}
+
+void CTraderSpi::onRspConnect(Json::Value root)
+{
+  Json::Value rspArgs;
+  
+  rspArgs["loginStatus"] = loginStatus;
+  m_client->send(m_hdl, getJsonStr(0,"onRspConnect","false",rspArgs).c_str()
+    , websocketpp::frame::opcode::text);
  ///用户登录请求
 }
+
+
+
 
 void CTraderSpi::ReqUserLogin(int loginID)
 {
@@ -118,16 +136,20 @@ void CTraderSpi::ReqUserLogout()
  strcpy(req.UserID, this->INVESTOR_ID);
 
  int iResult = t_pUserApi->ReqUserLogout(&req, ++iRequestID);
+ //strcpy(loginStatus,"Y");
  cerr << "--->>> 发送用户退出请求: " <<req.BrokerID<< ((iResult == 0) ? "成功" : "失败") << endl;
 }
 
 void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
   CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
+
+
  cerr << "--->>> " << "OnRspUserLogin" << endl;
  if (bIsLast && !IsErrorRspInfo(pRspInfo))
  {
-
+  cerr << "--->>> " << "sss" << endl;
+  strcpy(loginStatus,"Y");
   // 保存会话参数
   this->FRONT_ID = pRspUserLogin->FrontID;
   this->SESSION_ID = pRspUserLogin->SessionID;
@@ -173,6 +195,8 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
   ///投资者结算结果确认,
   //ReqSettlementInfoConfirm();
 }
+
+
 }
 
 void CTraderSpi::ReqSettlementInfoConfirm(Json::Value root)
@@ -377,6 +401,7 @@ void CTraderSpi::ReqQryInvestorPosition(Json::Value root)
  memset(&req, 0, sizeof(req));
  strcpy(req.BrokerID, BROKER_ID);
  strcpy(req.InvestorID, INVESTOR_ID);
+ cerr << "--->>> 请求查询投资者持仓: " <<this->BROKER_ID<<this->INVESTOR_ID << endl;
  //add xialei strcpy(req.InstrumentID, INSTRUMENT_ID);
  int iResult = t_pUserApi->ReqQryInvestorPosition(&req, root["UniqueID"].asInt());
  cerr << "--->>> 请求查询投资者持仓: " << ((iResult == 0) ? "成功" : "失败") << endl;
@@ -384,13 +409,16 @@ void CTraderSpi::ReqQryInvestorPosition(Json::Value root)
 
 void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInvestorPosition, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
- cerr << "--->>> " << "OnRspQryInvestorPosition" << endl;
+ cerr << "--->>> " << "OnRspQryInvestorPosition:" << endl;
  Json::Value rspArgs;
  //if (bIsLast && !IsErrorRspInfo(pRspInfo))
  //{
-
- if(!IsErrorRspInfo(pRspInfo)){
-      
+ if(pInvestorPosition == NULL)
+  return;
+ cerr << "--->>> " << "OnRspQryInvestorPosition11:" << endl;
+ //if( !IsErrorRspInfo(pRspInfo)){
+       cerr << "--->>> " << "OnRspQryInvestorPosition12:" << endl;
+       cerr << pInvestorPosition<<endl;
     rspArgs["InstrumentID"]=pInvestorPosition->InstrumentID;
     rspArgs["BrokerID"]=pInvestorPosition->BrokerID;
     rspArgs["InvestorID"]=pInvestorPosition->InvestorID;
@@ -434,12 +462,14 @@ void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInve
     rspArgs["StrikeFrozen"]=pInvestorPosition->StrikeFrozen;
     rspArgs["StrikeFrozenAmount"]=pInvestorPosition->StrikeFrozenAmount;
     rspArgs["AbandonFrozen"]=pInvestorPosition->AbandonFrozen;
-
+    
     //rspArgs["ErrorMsg"] = pRspInfo->ErrorMsg;
+    cerr << "--->>> " << "begin" << endl;
     m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspQryInvestorPosition","true",rspArgs).c_str()
                 , websocketpp::frame::opcode::text);
+    cerr << "--->>> " << "end" << endl;
 
- }
+ //}
 }
 
 void CTraderSpi::ReqOrderInsert(Json::Value root)
@@ -503,7 +533,7 @@ void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThost
  cerr << "--->>> " << "OnRspOrderInsert" << endl;
  Json::Value rspArgs;
  if(IsErrorRspInfo(pRspInfo)){
-        rspArgs["ErrorMsg"] = pRspInfo->ErrorMsg;
+        rspArgs["ErrorMsg"] = boosttoolsnamespace::CBoostTools::gbktoutf8(pRspInfo->ErrorMsg);
         m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspOrderInsert","true",rspArgs).c_str()
                 , websocketpp::frame::opcode::text);
  }
@@ -680,6 +710,8 @@ void CTraderSpi::OnFrontDisconnected(int nReason)
  rspArgs["Reason"] = nReason;
  m_client->send(m_hdl, getJsonStr(0,"OnFrontDisconnected","false",rspArgs).c_str()
                 , websocketpp::frame::opcode::text);
+
+ strcpy(loginStatus,"N");
 }
   
 void CTraderSpi::OnHeartBeatWarning(int nTimeLapse)
