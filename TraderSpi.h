@@ -70,7 +70,8 @@ public:
     int	    SESSION_ID;	//会话编号
     char*	ORDER_REF;	//报单引用
 
-    char* loginStatus = new char[2];
+    char* loginStatus;
+
 
     int loginID;
 
@@ -97,7 +98,7 @@ public:
 	///报单录入请求
 	void ReqOrderInsert(Json::Value root);
 	///报单操作请求
-	void ReqOrderAction(CThostFtdcOrderField *pOrder);
+	void ReqOrderAction(Json::Value root);
 
 	// 是否收到成功的响应
 	bool IsErrorRspInfo(CThostFtdcRspInfoField *pRspInfo);

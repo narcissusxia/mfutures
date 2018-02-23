@@ -157,6 +157,7 @@ void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketDa
 	cerr << "OnRtnDepthMarketData" << endl;
 
 	Json::Value rspArgs;
+	rspArgs["INVESTORID"]=INVESTOR_ID;
 	rspArgs["TradingDay"]=pDepthMarketData->TradingDay;
 	rspArgs["InstrumentID"]=pDepthMarketData->InstrumentID;
 	rspArgs["ExchangeID"]=pDepthMarketData->ExchangeID;

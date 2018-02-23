@@ -97,7 +97,7 @@ void CTraderSpi::OnFrontConnected()
 {
  cerr << "--->>> " << "OnFrontConnected" << endl;
 
- 
+ loginStatus = new char[2];
  strcpy(loginStatus,"N");
  ///用户登录请求
  ReqUserLogin(loginID);
@@ -107,8 +107,13 @@ void CTraderSpi::OnFrontConnected()
 void CTraderSpi::onRspConnect(Json::Value root)
 {
   Json::Value rspArgs;
-  
+  if(loginStatus == NULL){
+    loginStatus = new char[2];
+    strcpy(loginStatus,"N");
+  }
+ 
   rspArgs["loginStatus"] = loginStatus;
+  
   m_client->send(m_hdl, getJsonStr(0,"onRspConnect","false",rspArgs).c_str()
     , websocketpp::frame::opcode::text);
  ///用户登录请求
@@ -119,6 +124,7 @@ void CTraderSpi::onRspConnect(Json::Value root)
 
 void CTraderSpi::ReqUserLogin(int loginID)
 {
+  
  CThostFtdcReqUserLoginField req;
  //memset(&req, 0, sizeof(req));
  strcpy(req.BrokerID, this->BROKER_ID);
@@ -396,15 +402,20 @@ void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingA
 
 void CTraderSpi::ReqQryInvestorPosition(Json::Value root)
 {
- cerr << "--->>> 请求查询投资者持仓: "  << endl;
+ cerr << "--->>> ReqQryInvestorPosition: " <<root["ReqArgs"]["InstrumentID"]<<root["UniqueID"] << endl;
  CThostFtdcQryInvestorPositionField req;
  memset(&req, 0, sizeof(req));
  strcpy(req.BrokerID, BROKER_ID);
  strcpy(req.InvestorID, INVESTOR_ID);
- cerr << "--->>> 请求查询投资者持仓: " <<this->BROKER_ID<<this->INVESTOR_ID << endl;
+
+ if(!root["ReqArgs"]["InstrumentID"].isNull()){
+  //cerr << "--->>> ReqQryInvestorPosition:------ "  << endl;
+  strcpy(req.InstrumentID, root["ReqArgs"]["InstrumentID"].asString().c_str());
+ }
+ cerr << "--->>> ReqQryInvestorPosition: " <<this->BROKER_ID<<this->INVESTOR_ID << endl;
  //add xialei strcpy(req.InstrumentID, INSTRUMENT_ID);
  int iResult = t_pUserApi->ReqQryInvestorPosition(&req, root["UniqueID"].asInt());
- cerr << "--->>> 请求查询投资者持仓: " << ((iResult == 0) ? "成功" : "失败") << endl;
+ cerr << "--->>> ReqQryInvestorPosition: " << iResult << ((iResult == 0) ? "Success" : "Fail") << endl;
 }
 
 void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInvestorPosition, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
@@ -539,22 +550,38 @@ void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThost
  }
 }
 
-void CTraderSpi::ReqOrderAction(CThostFtdcOrderField *pOrder)
+void CTraderSpi::ReqOrderAction(Json::Value root)
 {
- static bool ORDER_ACTION_SENT = false;  //是否发送了报单
- if (ORDER_ACTION_SENT)
-  return;
+
+// ReqOrderAction 函数完成撤单操作，使用数据序列（BrokerID、InvestorID、OrderRef、
+//FrontID、SessionID、InstrumentID、ActionFlag=THOST_FTDC_AF_Delete）或（BrokerID、
+//InvestorID、exchangeID、traderID、OrderLocalID、ActionFlag=THOST_FTDC_AF_Delete）
+//定位报单完成撤销。 
+
+
+ //static bool ORDER_ACTION_SENT = false;  //是否发送了报单
+ //if (ORDER_ACTION_SENT)
+ // return;
 
  CThostFtdcInputOrderActionField req;
  memset(&req, 0, sizeof(req));
  ///经纪公司代码
- strcpy(req.BrokerID, pOrder->BrokerID);
+ //strcpy(req.BrokerID, pOrder->BrokerID);
+ strcpy(req.BrokerID, BROKER_ID);
  ///投资者代码
- strcpy(req.InvestorID, pOrder->InvestorID);
- ///报单操作引用
-// TThostFtdcOrderActionRefType OrderActionRef;
+ //strcpy(req.InvestorID, pOrder->InvestorID);
+ strcpy(req.InvestorID, INVESTOR_ID);
+ ///投资者代码
+ 
+  ///报单操作引用
+  //TThostFtdcOrderActionRefType OrderActionRef;
  ///报单引用
- strcpy(req.OrderRef, pOrder->OrderRef);
+ //strcpy(req.OrderRef, pOrder->OrderRef);
+ strcpy(req.OrderRef, root["ReqArgs"]["OrderRef"].asString().c_str());
+ ///合约代码
+ ///strcpy(req.InstrumentID, pOrder->InstrumentID);
+ strcpy(req.InstrumentID, root["ReqArgs"]["InstrumentID"].asString().c_str());
+
  ///请求编号
 // TThostFtdcRequestIDType RequestID;
  ///前置编号
@@ -567,19 +594,18 @@ void CTraderSpi::ReqOrderAction(CThostFtdcOrderField *pOrder)
 // TThostFtdcOrderSysIDType OrderSysID;
  ///操作标志
  req.ActionFlag = THOST_FTDC_AF_Delete;
-    ///删除 THOST_FTDC_AF_Delete '0'  修改 THOST_FTDC_AF_Modify '3'
+ ///删除 THOST_FTDC_AF_Delete '0'  修改 THOST_FTDC_AF_Modify '3'
  ///价格
-// TThostFtdcPriceType LimitPrice;
+ // TThostFtdcPriceType LimitPrice;
  ///数量变化
-// TThostFtdcVolumeType VolumeChange;
+ // TThostFtdcVolumeType VolumeChange;
  ///用户代码
-// TThostFtdcUserIDType UserID;
+ // TThostFtdcUserIDType UserID;
  ///合约代码
- strcpy(req.InstrumentID, pOrder->InstrumentID);
  lOrderTime=time(NULL);
  int iResult = t_pUserApi->ReqOrderAction(&req, ++iRequestID);
  cerr << "--->>> 报单操作请求: " << ((iResult == 0) ? "成功" : "失败") << endl;
- ORDER_ACTION_SENT = true;
+ //ORDER_ACTION_SENT = true;
 }
 
 void CTraderSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pInputOrderAction, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)

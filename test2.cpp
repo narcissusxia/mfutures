@@ -120,8 +120,8 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
     else if(root["ReqType"].asString() == "ReqOrderInsert"){
       spi->ReqOrderInsert(root);
     }//撤单请求
-    else if(root["ReqType"].asString() == "ReqOrderInsert"){
-      spi->ReqOrderInsert(root);
+    else if(root["ReqType"].asString() == "ReqOrderAction"){
+      spi->ReqOrderAction(root);
     }//订阅请求
     else if(root["ReqType"].asString() == "MdSubscribeMarketData"){
       mdspi->MdSubscribeMarketData(root);
@@ -150,6 +150,7 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
 }
 
 bool status = false;
+int iiii = 0;
 
 void on_open(client* c, websocketpp::connection_hdl hdl) {
     // now it is safe to use the connection
@@ -167,53 +168,82 @@ void on_fail(client * c, websocketpp::connection_hdl hdl) {
 }
 
 void on_close(client *c, websocketpp::connection_hdl hdl)
-{ 
+{
+  iiii++;
+  cout << "have client on_close:"<<iiii << endl;
+  // 释放 pMdApi 
+  if (pMdApi) 
+  { 
+   pMdApi->RegisterSpi(NULL); 
+   pMdApi->Release(); 
+   pMdApi = NULL; 
+  } 
+  // 释放 mdspi 实例 
+  if (mdspi) 
+  { 
+   delete mdspi; 
+   mdspi = NULL; 
+  } 
 
+  if (pTraderApi) 
+  { 
+   pTraderApi->RegisterSpi(NULL); 
+   pTraderApi->Release(); 
+   pTraderApi = NULL; 
+  } 
+   // 释放 pTraderspi 实例 
+  if (spi) 
+  { 
+   delete spi; 
+   spi = NULL; 
+  }
 
   status = false;
-  cout << "have client on_close" << endl;
-  client mmc;
-  //mmc.set_access_channels(websocketpp::log::alevel::none);
-  //mmc.clear_access_channels(websocketpp::log::alevel::frame_payload);
-  mmc.clear_access_channels(websocketpp::log::alevel::all);
-  //mmc.set_access_channels(websocketpp::log::alevel::frame_header);
-  //mmc.clear_error_channels(websocketpp::log::elevel::all);
 
-  //mmc.set_error_channels(websocketpp::log::elevel::all);
-  //mmc.set_access_channels(websocketpp::log::alevel::all ^ websocketpp::log::alevel::frame_payload);
-
-  //mmc.set_error_channels(websocketpp::log::elevel::none);
-    // Initialize ASIO
-  mmc.init_asio();
-
-  // Register our message handler
-  mmc.set_message_handler(bind(&on_message,&mmc,::_1,::_2));
-  mmc.set_open_handler(bind(&on_open,&mmc,::_1));
-    // Register our close handler
-  mmc.set_close_handler(bind(&on_close, &mmc, _1));
-  mmc.set_fail_handler(bind(&on_fail, &mmc, _1));
-
-  client::connection_ptr con;
-   
-  websocketpp::lib::error_code ec;
-  con = mmc.get_connection(uri, ec);
-  if (ec) {
-          std::cout << " connection error: " << ec.message() << std::endl;
-  }
-  
+  //std::cout  << "close code: "  << con->get_remote_close_reason();
   while(!status){
-      
+
+
+      std::cout << "wait for connection run:"<<uri << std::endl;
       sleep(10);
-    
+      std::cout << "start connection run:"<<uri << std::endl;
+      client mmc;
+      //mmc.set_access_channels(websocketpp::log::alevel::none);
+      //mmc.clear_access_channels(websocketpp::log::alevel::frame_payload);
+      mmc.clear_access_channels(websocketpp::log::alevel::all);
+      //mmc.set_access_channels(websocketpp::log::alevel::frame_header);
+      //mmc.clear_error_channels(websocketpp::log::elevel::all);
+      //mmc.set_error_channels(websocketpp::log::elevel::all);
+      //mmc.set_access_channels(websocketpp::log::alevel::all ^ websocketpp::log::alevel::frame_payload);
+      //mmc.set_error_channels(websocketpp::log::elevel::none);
+      // Initialize ASIO
+      mmc.init_asio();
+
+      // Register our message handler
+      mmc.set_message_handler(bind(&on_message,&mmc,::_1,::_2));
+      mmc.set_open_handler(bind(&on_open,&mmc,::_1));
+        // Register our close handler
+      mmc.set_close_handler(bind(&on_close, &mmc, _1));
+      mmc.set_fail_handler(bind(&on_fail, &mmc, _1));
+
+      client::connection_ptr con;
+   
+      websocketpp::lib::error_code ec;
+      con = mmc.get_connection(uri, ec);
+      if (ec) {
+              std::cout << " connection error: " << ec.message() << std::endl;
+      }
+
       mmc.connect(con);
       mmc.run();
+      
       //spi->setWebsocket(c,c->get_hdl());
       std::cout  << "close code: "  << con->get_remote_close_reason();
 
       
    }
 
-  std::cout << "wait for connection run:"<<uri << std::endl;
+  
   
 
   // Start the ASIO io_service run loop
