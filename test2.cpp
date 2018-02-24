@@ -36,7 +36,7 @@ std::string uri = "ws://192.168.1.6:8080/futures/websocket/cppclient001";
 typedef websocketpp::config::asio_client::message_type::ptr message_ptr;
 
 websocketpp::connection_hdl m_hdl;
-
+std::string getCurrentTime() ;
 
 //JsonCpp
 Json::Value readStrJson(const std::string& str)   
@@ -54,11 +54,18 @@ Json::Value readStrJson(const std::string& str)
 }  
 
 void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
-    std::cout << "on_message called with hdl: " << hdl.lock().get()
-              << " and message: " << msg->get_payload()
-              << std::endl;
+   
     //sh->ReqUserLogin();
     Json::Value root = readStrJson(msg->get_payload());
+    if(root["ReqType"].asString() == "OnConnect"){
+        spi->onRspConnect(root);
+        return;
+    }
+    else
+    {
+      std::cout << getCurrentTime()<<"on_message:"<< msg->get_payload()
+              << std::endl;
+    }
 
     //登录请求
     if (root["ReqType"].asString() == "ReqUserLogin") {
@@ -73,7 +80,7 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
       cout  <<"URL=" << root["ReqArgs"]["URL"].asString()<< endl;
       cout  <<"BROKER_ID=" <<root["ReqArgs"]["BROKER_ID"].asString().c_str()<< endl;
       cout  <<"INVESTOR_ID=" << root["ReqArgs"]["INVESTOR_ID"].asString().c_str()<< endl;
-      cout  <<"PASSWORD=" << root["ReqArgs"]["PASSWORD"].asString().c_str()<< endl;
+      //cout  <<"PASSWORD=" << root["ReqArgs"]["PASSWORD"].asString().c_str()<< endl;
       //pUserApi = CThostFtdcTraderApi::CreateFtdcTraderApi();      // 创建UserApi
       //sh= new CTraderSpi();
       //pUserApi->RegisterSpi ((CThostFtdcTraderSpi*)sh);   
@@ -131,8 +138,6 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
     }//查询投资者持仓
     else if(root["ReqType"].asString() == "ReqQryInvestorPosition"){
       spi->ReqQryInvestorPosition(root);
-    }else if(root["ReqType"].asString() == "OnConnect"){
-       spi->onRspConnect(root);
     }
 
 
@@ -150,7 +155,6 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
 }
 
 bool status = false;
-int iiii = 0;
 
 void on_open(client* c, websocketpp::connection_hdl hdl) {
     // now it is safe to use the connection
@@ -160,17 +164,7 @@ void on_open(client* c, websocketpp::connection_hdl hdl) {
   
 }
 
-void on_fail(client * c, websocketpp::connection_hdl hdl) {
-       
-    cout << "have client on_fail" << endl;
-    client::connection_ptr con = c->get_con_from_hdl(hdl);
-    std::cout << "on_fail："<< con->get_response_header("Server")<<" "<<con->get_ec().message()<< std::endl; 
-}
-
-void on_close(client *c, websocketpp::connection_hdl hdl)
-{
-  iiii++;
-  cout << "have client on_close:"<<iiii << endl;
+void ReleaseTrader(){
   // 释放 pMdApi 
   if (pMdApi) 
   { 
@@ -197,6 +191,22 @@ void on_close(client *c, websocketpp::connection_hdl hdl)
    delete spi; 
    spi = NULL; 
   }
+}
+
+void on_fail(client * c, websocketpp::connection_hdl hdl) {
+       
+    cout << "have client on_fail" << endl;
+    client::connection_ptr con = c->get_con_from_hdl(hdl);
+    std::cout << "on_fail："<< con->get_response_header("Server")<<" "<<con->get_ec().message()<< std::endl; 
+    ReleaseTrader();
+
+}
+
+void on_close(client *c, websocketpp::connection_hdl hdl)
+{
+
+  cout << "have client on_close:" << endl;
+  ReleaseTrader();
 
   status = false;
 
@@ -272,6 +282,7 @@ int main(int argc, char* argv[]) {
         // Set logging to be pretty verbose (everything except message payloads)
     mc.clear_access_channels(websocketpp::log::alevel::all);
     //mc.clear_access_channels(websocketpp::log::alevel::frame_payload);
+    //mc.clear_error_channels(websocketpp::log::elevel::all);
 
 
 

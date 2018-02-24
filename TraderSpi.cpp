@@ -48,6 +48,17 @@ time_t lOrderTime;
 time_t lOrderOkTime;
 
 
+std::string getCurrentTime()  
+{  
+    time_t seconds = time(NULL);    //获取时间  
+    struct tm *p;  
+    p = localtime(&seconds);//获取本地时间  
+    char strTime[100] = {0};  
+      
+    sprintf(strTime,"[%d-%2d-%2d %2d:%2d:%2d]",1900+p->tm_year,1+p->tm_mon,p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec);  
+  
+    return string(strTime);  
+}  
 
 void CTraderSpi::setWebsocket(client* c,websocketpp::connection_hdl hdl)
 {  
@@ -84,18 +95,20 @@ std::string CTraderSpi::getJsonStr(int uniqueID,std::string rspType,std::string 
     out = Json::writeString(wbuilder, root);
 
   }catch(std::exception &ex)  
-  {  
-    printf("StructDataToJsonString exception %s.\n", ex.what());  
+  {
+    std::cout  <<getCurrentTime()<<"StructDataToJsonString exception:"<<ex.what() << std::endl;  
     return out;
+  }
 
-  } 
-  std::cout << "'" << out << "'" << std::endl;
+  if( ! (rspType == "onRspConnect"))
+    std::cout  <<getCurrentTime()<< "Json=" << out << "'" << std::endl;
+
   return out;
 }
 
 void CTraderSpi::OnFrontConnected()
 {
- cerr << "--->>> " << "OnFrontConnected" << endl;
+ std::cout<<getCurrentTime() << "OnFrontConnected" << endl;
 
  loginStatus = new char[2];
  strcpy(loginStatus,"N");
@@ -114,8 +127,19 @@ void CTraderSpi::onRspConnect(Json::Value root)
  
   rspArgs["loginStatus"] = loginStatus;
   
-  m_client->send(m_hdl, getJsonStr(0,"onRspConnect","false",rspArgs).c_str()
-    , websocketpp::frame::opcode::text);
+  try{
+
+    websocketpp::lib::error_code ec;
+    m_client->send(m_hdl, getJsonStr(0,"onRspConnect","false",rspArgs).c_str()
+                  , websocketpp::frame::opcode::text,ec);
+    if (ec) {
+          std::cout  <<getCurrentTime()<< "onRspConnect Echo failed because: " << ec.message() << std::endl;
+    }
+
+  } catch (websocketpp::exception const & e) {
+        std::cout <<getCurrentTime() << e.what() << std::endl;
+  }
+  
  ///用户登录请求
 }
 
@@ -131,7 +155,7 @@ void CTraderSpi::ReqUserLogin(int loginID)
  strcpy(req.UserID, this->INVESTOR_ID);
  strcpy(req.Password, this->PASSWORD);
  int iResult = t_pUserApi->ReqUserLogin(&req, loginID);
- cerr << "--->>> 发送用户登录请求: " <<req.BrokerID<< ((iResult == 0) ? "成功" : "失败") << endl;
+ std::cout <<getCurrentTime() << "ReqUserLogin: " <<req.BrokerID<< ((iResult == 0) ? "Success" : "Fail") << endl;
 }
 
 void CTraderSpi::ReqUserLogout()
@@ -143,7 +167,7 @@ void CTraderSpi::ReqUserLogout()
 
  int iResult = t_pUserApi->ReqUserLogout(&req, ++iRequestID);
  //strcpy(loginStatus,"Y");
- cerr << "--->>> 发送用户退出请求: " <<req.BrokerID<< ((iResult == 0) ? "成功" : "失败") << endl;
+ std::cout  <<getCurrentTime()<< "ReqUserLogout: " <<req.BrokerID<< ((iResult == 0) ? "Success" : "Fail") << endl;
 }
 
 void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
@@ -151,10 +175,10 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
 {
 
 
- cerr << "--->>> " << "OnRspUserLogin" << endl;
+ std::cout <<getCurrentTime()<< "--->>> " << "OnRspUserLogin" << endl;
  if (bIsLast && !IsErrorRspInfo(pRspInfo))
  {
-  cerr << "--->>> " << "sss" << endl;
+  //cerr << "--->>> " << "sss" << endl;
   strcpy(loginStatus,"Y");
   // 保存会话参数
   this->FRONT_ID = pRspUserLogin->FrontID;
@@ -166,7 +190,7 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
         //strcpy(this->SESSION_ID, pRspUserLogin->SESSION_ID);
 
   //SESSION_ID = pRspUserLogin->SessionID;
-  cerr << "--->>> " << "OnRspUserLogin2" << endl;
+  //cerr << "--->>> " << "OnRspUserLogin2" << endl;
   //int iNextOrderRef = atoi(pRspUserLogin->MaxOrderRef);
   //iNextOrderRef++;
   //char* ORDER_REF;
@@ -176,7 +200,7 @@ void CTraderSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
   //cerr << "--->>> " << "OnRspUserLogin5" << endl;
   this->ORDER_REF = new char[strlen(pRspUserLogin->MaxOrderRef)+1];
   strcpy(this->ORDER_REF, pRspUserLogin->MaxOrderRef);
-  cerr << "--->>> " << "OnRspUserLogin3" << endl;
+  //cerr << "--->>> " << "OnRspUserLogin3" << endl;
   ///获取当前交易日
   Json::Value rspArgs;
   rspArgs["TradingDay"] = pRspUserLogin->TradingDay;
@@ -212,12 +236,12 @@ void CTraderSpi::ReqSettlementInfoConfirm(Json::Value root)
  strcpy(req.BrokerID, BROKER_ID);
  strcpy(req.InvestorID, INVESTOR_ID);
  int iResult = t_pUserApi->ReqSettlementInfoConfirm(&req, root["UniqueID"].asInt());
- cerr << "--->>> 投资者结算结果确认: " << ((iResult == 0) ? "成功" : "失败") << endl;
+ std::cout <<getCurrentTime()<< "ReqSettlementInfoConfirm: " << ((iResult == 0) ? "Success" : "Fail") << endl;
 }
 
 void CTraderSpi::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pSettlementInfoConfirm, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
- cerr << "--->>> " << "OnRspSettlementInfoConfirm" << endl;
+ std::cout << "--->>> " << "OnRspSettlementInfoConfirm" << endl;
  if (bIsLast && !IsErrorRspInfo(pRspInfo))
  {
         Json::Value rspArgs;
@@ -241,7 +265,7 @@ void CTraderSpi::ReqQryInstrument(Json::Value root)
  memset(&req, 0, sizeof(req));
  //add xialei strcpy(req.InstrumentID, INSTRUMENT_ID);
  int iResult = t_pUserApi->ReqQryInstrument(&req, root["UniqueID"].asInt());
- cerr << "--->>> 请求查询合约: " << ((iResult == 0) ? "成功" : "失败") << endl;
+ std::cout  <<getCurrentTime()<< "ReqQryInstrument: " << ((iResult == 0) ? "Success" : "Fail") << endl;
 }
 
 
@@ -340,12 +364,12 @@ void CTraderSpi::ReqQryTradingAccount(Json::Value root)
  strcpy(req.BrokerID, BROKER_ID);
  strcpy(req.InvestorID, INVESTOR_ID);
  int iResult = t_pUserApi->ReqQryTradingAccount(&req,root["UniqueID"].asInt());
- cerr << "--->>> 请求查询资金账户: " << ((iResult == 0) ? "成功" : "失败") << endl;
+ std::cout <<getCurrentTime()<< "ReqQryTradingAccount: " << ((iResult == 0) ? "Success" : "Fail") << endl;
 }
 
 void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingAccount, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
- cerr << "--->>> " << "OnRspQryTradingAccount" << endl;
+ std::cout <<getCurrentTime()<< "OnRspQryTradingAccount" << endl;
  Json::Value rspArgs;
  if (!IsErrorRspInfo(pRspInfo))
  {
@@ -402,7 +426,7 @@ void CTraderSpi::OnRspQryTradingAccount(CThostFtdcTradingAccountField *pTradingA
 
 void CTraderSpi::ReqQryInvestorPosition(Json::Value root)
 {
- cerr << "--->>> ReqQryInvestorPosition: " <<root["ReqArgs"]["InstrumentID"]<<root["UniqueID"] << endl;
+ //cerr << "--->>> ReqQryInvestorPosition: " <<root["ReqArgs"]["InstrumentID"]<<root["UniqueID"] << endl;
  CThostFtdcQryInvestorPositionField req;
  memset(&req, 0, sizeof(req));
  strcpy(req.BrokerID, BROKER_ID);
@@ -412,24 +436,23 @@ void CTraderSpi::ReqQryInvestorPosition(Json::Value root)
   //cerr << "--->>> ReqQryInvestorPosition:------ "  << endl;
   strcpy(req.InstrumentID, root["ReqArgs"]["InstrumentID"].asString().c_str());
  }
- cerr << "--->>> ReqQryInvestorPosition: " <<this->BROKER_ID<<this->INVESTOR_ID << endl;
+ //cerr << "--->>> ReqQryInvestorPosition: " <<this->BROKER_ID<<this->INVESTOR_ID << endl;
  //add xialei strcpy(req.InstrumentID, INSTRUMENT_ID);
  int iResult = t_pUserApi->ReqQryInvestorPosition(&req, root["UniqueID"].asInt());
- cerr << "--->>> ReqQryInvestorPosition: " << iResult << ((iResult == 0) ? "Success" : "Fail") << endl;
+ std::cout <<getCurrentTime()<< "ReqQryInvestorPosition: " << iResult << ((iResult == 0) ? "Success" : "Fail") << endl;
 }
 
 void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInvestorPosition, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
- cerr << "--->>> " << "OnRspQryInvestorPosition:" << endl;
+ std::cout <<getCurrentTime() << "OnRspQryInvestorPosition:" << endl;
  Json::Value rspArgs;
  //if (bIsLast && !IsErrorRspInfo(pRspInfo))
  //{
- if(pInvestorPosition == NULL)
-  return;
- cerr << "--->>> " << "OnRspQryInvestorPosition11:" << endl;
+ if(pInvestorPosition == NULL) return;
+ //cerr << "--->>> " << "OnRspQryInvestorPosition11:" << endl;
  //if( !IsErrorRspInfo(pRspInfo)){
-       cerr << "--->>> " << "OnRspQryInvestorPosition12:" << endl;
-       cerr << pInvestorPosition<<endl;
+ //      cerr << "--->>> " << "OnRspQryInvestorPosition12:" << endl;
+ //      cerr << pInvestorPosition<<endl;
     rspArgs["InstrumentID"]=pInvestorPosition->InstrumentID;
     rspArgs["BrokerID"]=pInvestorPosition->BrokerID;
     rspArgs["InvestorID"]=pInvestorPosition->InvestorID;
@@ -475,10 +498,10 @@ void CTraderSpi::OnRspQryInvestorPosition(CThostFtdcInvestorPositionField *pInve
     rspArgs["AbandonFrozen"]=pInvestorPosition->AbandonFrozen;
     
     //rspArgs["ErrorMsg"] = pRspInfo->ErrorMsg;
-    cerr << "--->>> " << "begin" << endl;
+    //cerr << "--->>> " << "begin" << endl;
     m_client->send(m_hdl, getJsonStr(nRequestID,"OnRspQryInvestorPosition","true",rspArgs).c_str()
                 , websocketpp::frame::opcode::text);
-    cerr << "--->>> " << "end" << endl;
+    //cerr << "--->>> " << "end" << endl;
 
  //}
 }
@@ -536,12 +559,13 @@ void CTraderSpi::ReqOrderInsert(Json::Value root)
 
     lOrderTime=time(NULL);
     int iResult = t_pUserApi->ReqOrderInsert(&req,root["UniqueID"].asInt());
-    cerr << "--->>> 报单录入请求: "<<root["UniqueID"].asInt()<<";xx=" << ((iResult == 0) ? "成功" : "失败") << endl;
+    std::cout <<getCurrentTime()<< "ReqOrderInsert: "<<root["UniqueID"].asInt()<<";xx=" 
+         << ((iResult == 0) ? "Success" : "Fail") << endl;
   }
 
 void CTraderSpi::OnRspOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
- cerr << "--->>> " << "OnRspOrderInsert" << endl;
+ std::cout <<getCurrentTime() << "OnRspOrderInsert" << endl;
  Json::Value rspArgs;
  if(IsErrorRspInfo(pRspInfo)){
         rspArgs["ErrorMsg"] = boosttoolsnamespace::CBoostTools::gbktoutf8(pRspInfo->ErrorMsg);
@@ -571,6 +595,7 @@ void CTraderSpi::ReqOrderAction(Json::Value root)
  ///投资者代码
  //strcpy(req.InvestorID, pOrder->InvestorID);
  strcpy(req.InvestorID, INVESTOR_ID);
+
  ///投资者代码
  
   ///报单操作引用
@@ -585,9 +610,11 @@ void CTraderSpi::ReqOrderAction(Json::Value root)
  ///请求编号
 // TThostFtdcRequestIDType RequestID;
  ///前置编号
- req.FrontID = FRONT_ID;
+ //req.FrontID = FRONT_ID;
+ req.FrontID=root["ReqArgs"]["FrontID"].asInt();
  ///会话编号
- req.SessionID = SESSION_ID;
+ //req.SessionID = SESSION_ID;
+ req.SessionID= root["ReqArgs"]["SessionID"].asInt();
  ///交易所代码
 // TThostFtdcExchangeIDType ExchangeID;
  ///报单编号
@@ -604,13 +631,13 @@ void CTraderSpi::ReqOrderAction(Json::Value root)
  ///合约代码
  lOrderTime=time(NULL);
  int iResult = t_pUserApi->ReqOrderAction(&req, ++iRequestID);
- cerr << "--->>> 报单操作请求: " << ((iResult == 0) ? "成功" : "失败") << endl;
+ std::cout <<getCurrentTime()<<"ReqOrderAction: " << ((iResult == 0) ? "Success" : "Fail") << endl;
  //ORDER_ACTION_SENT = true;
 }
 
 void CTraderSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pInputOrderAction, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
- cerr << "--->>> " << "OnRspOrderAction" << endl;
+ std::cout <<getCurrentTime() << "OnRspOrderAction" << endl;
  IsErrorRspInfo(pRspInfo);
 }
 
@@ -618,8 +645,8 @@ void CTraderSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pInputOrderAc
 ///报单通知
 void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
 {
- cerr << "--->>> " << "OnRtnOrder="<<pOrder->RequestID << endl;
- cerr << "--->>> 报单到报单通知的时间差 = "<<pOrder->StatusMsg  << endl;
+ std::cout <<getCurrentTime()<< "OnRtnOrder="<<pOrder->RequestID << endl;
+ //cerr << "--->>> 报单到报单通知的时间差 = "<<pOrder->StatusMsg  << endl;
  //if (IsMyOrder(pOrder))
  //{
         Json::Value rspArgs;
@@ -685,7 +712,7 @@ void CTraderSpi::OnRtnOrder(CThostFtdcOrderField *pOrder)
 ///成交通知
 void CTraderSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 {
- cerr << "--->>> " << "OnRtnTrade"  << endl;
+ std::cout <<getCurrentTime()<< "OnRtnTrade"  << endl;
     if(true){
         Json::Value rspArgs;
         rspArgs["BrokerID"] = pTrade->BrokerID;
@@ -719,9 +746,9 @@ void CTraderSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
         rspArgs["TradeSource"] = pTrade->TradeSource;
         rspArgs["ExchangeID"] = pTrade->ExchangeID;
         
-        std::cout << "on_message called with hdl: " << m_hdl.lock().get()
+        //std::cout <<getCurrentTime() "on_message called with hdl: " << m_hdl.lock().get()
               //<< " and message: " << msg->get_payload()
-              << std::endl;
+        //      << std::endl;
         m_client->send(m_hdl, getJsonStr(0,"OnRtnTrade","false",rspArgs).c_str()
                 , websocketpp::frame::opcode::text);
     }
@@ -729,21 +756,19 @@ void CTraderSpi::OnRtnTrade(CThostFtdcTradeField *pTrade)
 
 void CTraderSpi::OnFrontDisconnected(int nReason)
 {
- cerr << "--->>> " << "OnFrontDisconnected" << endl;
- cerr << "--->>> Reason = " << nReason << endl;
- Json::Value rspArgs;
- rspArgs["InvestorID"] =INVESTOR_ID;
- rspArgs["Reason"] = nReason;
- m_client->send(m_hdl, getJsonStr(0,"OnFrontDisconnected","false",rspArgs).c_str()
-                , websocketpp::frame::opcode::text);
+  std::cout <<getCurrentTime()<< "OnFrontDisconnected:"<<"Reason = " << nReason  << endl;
+  Json::Value rspArgs;
+  rspArgs["InvestorID"] =INVESTOR_ID;
+  rspArgs["Reason"] = nReason;
+  m_client->send(m_hdl, getJsonStr(0,"OnFrontDisconnected","false",rspArgs).c_str()
+                  , websocketpp::frame::opcode::text);
 
- strcpy(loginStatus,"N");
+  strcpy(loginStatus,"N");
 }
   
 void CTraderSpi::OnHeartBeatWarning(int nTimeLapse)
 {
- cerr << "--->>> " << "OnHeartBeatWarning" << endl;
- cerr << "--->>> nTimerLapse = " << nTimeLapse << endl;
+ std::cout <<getCurrentTime()<< "OnHeartBeatWarning,nTimerLapse=" << nTimeLapse<< endl;;
 }
 
 void CTraderSpi::OnRspError(CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
@@ -762,7 +787,7 @@ bool CTraderSpi::IsErrorRspInfo(CThostFtdcRspInfoField *pRspInfo)
  // 如果ErrorID != 0, 说明收到了错误的响应
  bool bResult = ((pRspInfo) && (pRspInfo->ErrorID != 0));
  if (bResult)
-  cerr << "--->>> ErrorID=" << pRspInfo->ErrorID << ", ErrorMsg=" 
+   std::cout <<getCurrentTime()<<"ErrorID=" << pRspInfo->ErrorID << ", ErrorMsg=" 
     <<  boosttoolsnamespace::CBoostTools::gbktoutf8(pRspInfo->ErrorMsg) << endl;
  return bResult;
 }

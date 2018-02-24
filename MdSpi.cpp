@@ -92,7 +92,7 @@ void CMdSpi::MdReqUserLogin(Json::Value root)
 	strcpy(req.UserID, INVESTOR_ID);
 	strcpy(req.Password, PASSWORD);
 	int iResult = m_pUserApi->ReqUserLogin(&req, ++iRequestID);
-	cerr << "--->>> 发送用户登录请求: " << ((iResult == 0) ? "成功" : "失败") << endl;
+	cerr << "--->>> MdReqUserLogin: " << ((iResult == 0) ? "Success" : "Fail") << endl;
 }
 
 void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,
@@ -129,7 +129,7 @@ void CMdSpi::MdSubscribeMarketData(Json::Value root)
 	char  **Instrumnet = new char*[1]; 
 	Instrumnet[0]=const_cast<char *>(root["ReqArgs"]["InstrumentID"].asString().c_str());
 	int iResult = m_pUserApi->SubscribeMarketData(Instrumnet, 1);
-	cerr << "--->>> 发送行情订阅请求: " << ((iResult == 0) ? "成功" : "失败") << endl;
+	cerr << "--->>> MdSubscribeMarketData: " << ((iResult == 0) ? "Success" : "Fail") << endl;
 }
 
 void CMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
@@ -154,7 +154,7 @@ double filterDouble(double a){
 void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData)
 {
 	
-	cerr << "OnRtnDepthMarketData" << endl;
+	//cerr << "OnRtnDepthMarketData" << endl;
 
 	Json::Value rspArgs;
 	rspArgs["INVESTORID"]=INVESTOR_ID;
@@ -238,9 +238,20 @@ void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketDa
 	printf("x5：【%f】\n",filterDouble(pDepthMarketData->BidPrice5) ); 
 	printf("x5：【%d】\n",pDepthMarketData->BidVolume5 ); 
 	*/
-	m_client->send(m_hdl, getJsonStr(0,"OnRtnDepthMarketData","false",rspArgs).c_str()
-		, websocketpp::frame::opcode::text);
 
+	websocketpp::lib::error_code ec;
+
+    //c->send(hdl, msg->get_payload(), msg->get_opcode(), ec);
+    try{
+		m_client->send(m_hdl, getJsonStr(0,"OnRtnDepthMarketData","false",rspArgs).c_str()
+			, websocketpp::frame::opcode::text,ec);
+		if (ec) {
+	        std::cout << "Echo failed because: " << ec.message() << std::endl;
+	    }
+
+    } catch (websocketpp::exception const & e) {
+        std::cout << e.what() << std::endl;
+    }
 
 }
 
