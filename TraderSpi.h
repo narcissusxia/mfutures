@@ -70,10 +70,14 @@ public:
     int	    SESSION_ID;	//会话编号
     char*	ORDER_REF;	//报单引用
 
-    char* loginStatus;
+    char* loginStatus="N";
+
+    //strcpy(loginStatus, "N");
 
 
     int loginID;
+
+  
 
     ///用户登录请求
 	void ReqUserLogin(int loginID);

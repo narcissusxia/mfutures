@@ -55,14 +55,15 @@ std::string getCurrentTime()
     p = localtime(&seconds);//获取本地时间  
     char strTime[100] = {0};  
       
-    sprintf(strTime,"[%d-%2d-%2d %2d:%2d:%2d]",1900+p->tm_year,1+p->tm_mon,p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec);  
+    sprintf(strTime,"[%d-%02d-%02d %02d:%02d:%02d]",1900+p->tm_year,1+p->tm_mon,p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec);  
   
     return string(strTime);  
 }  
 
 void CTraderSpi::setWebsocket(client* c,websocketpp::connection_hdl hdl)
 {  
- m_client = c; m_hdl =hdl;
+    m_client = c; m_hdl =hdl;
+    iRequestID= 0;
 }
 
 void CTraderSpi::setUserLoginInfo(int id , const char* BROKER_ID,const char* INVESTOR_ID,const char*  PASSWORD)
@@ -105,7 +106,7 @@ std::string CTraderSpi::getJsonStr(int uniqueID,std::string rspType,std::string 
 
   return out;
 }
-
+ 
 void CTraderSpi::OnFrontConnected()
 {
  std::cout<<getCurrentTime() << "OnFrontConnected" << endl;
@@ -119,11 +120,14 @@ void CTraderSpi::OnFrontConnected()
 
 void CTraderSpi::onRspConnect(Json::Value root)
 {
+  //std::cout  <<getCurrentTime()<< "onRspConnect  "<< std::endl;
   Json::Value rspArgs;
-  if(loginStatus == NULL){
+  if(strlen(loginStatus)  ==0){
+    //std::cout  <<getCurrentTime()<< "onRspConnect1  "<< std::endl;
     loginStatus = new char[2];
     strcpy(loginStatus,"N");
   }
+  //std::cout  <<getCurrentTime()<< "onRspConnect2  "<< std::endl;
  
   rspArgs["loginStatus"] = loginStatus;
   
@@ -264,7 +268,7 @@ void CTraderSpi::ReqQryInstrument(Json::Value root)
  CThostFtdcQryInstrumentField req;
  memset(&req, 0, sizeof(req));
  //add xialei strcpy(req.InstrumentID, INSTRUMENT_ID);
- int iResult = t_pUserApi->ReqQryInstrument(&req, root["UniqueID"].asInt());
+ int iResult = t_pUserApi->ReqQryInstrument(&req,  ++iRequestID);
  std::cout  <<getCurrentTime()<< "ReqQryInstrument: " << ((iResult == 0) ? "Success" : "Fail") << endl;
 }
 

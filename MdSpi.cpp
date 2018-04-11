@@ -129,12 +129,12 @@ void CMdSpi::MdSubscribeMarketData(Json::Value root)
 	char  **Instrumnet = new char*[1]; 
 	Instrumnet[0]=const_cast<char *>(root["ReqArgs"]["InstrumentID"].asString().c_str());
 	int iResult = m_pUserApi->SubscribeMarketData(Instrumnet, 1);
-	cerr << "--->>> MdSubscribeMarketData: " << ((iResult == 0) ? "Success" : "Fail") << endl;
+	//cerr << "--->>> MdSubscribeMarketData: " << ((iResult == 0) ? "Success" : "Fail") << endl;
 }
 
 void CMdSpi::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)
 {
-	cerr << "OnRspSubMarketData" << endl;
+	//cerr << "OnRspSubMarketData" << endl;
 }
 
 void CMdSpi::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast)

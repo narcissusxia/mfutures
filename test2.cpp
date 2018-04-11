@@ -57,9 +57,12 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
    
     //sh->ReqUserLogin();
     Json::Value root = readStrJson(msg->get_payload());
-    if(root["ReqType"].asString() == "OnConnect"){
+    if(root["ReqType"].asString() == "OnConnect"  ){
         spi->onRspConnect(root);
         return;
+    }
+    else if(root["ReqType"].asString() == "MdSubscribeMarketData"){
+       ;
     }
     else
     {
@@ -85,11 +88,12 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
       //sh= new CTraderSpi();
       //pUserApi->RegisterSpi ((CThostFtdcTraderSpi*)sh);   
       //如果webservice打开,给交易系统赋websocket值
-      if (!( NULL == pTraderApi) )
-      pTraderApi->Release();
+      if (!( NULL == pTraderApi) )pTraderApi->Release();
+
       pTraderApi = CThostFtdcTraderApi::CreateFtdcTraderApi();      // 创建UserApi
       spi = new CTraderSpi(pTraderApi);
-      pTraderApi->RegisterSpi ((CThostFtdcTraderSpi*)spi); 
+      pTraderApi->RegisterSpi ((CThostFtdcTraderSpi*)spi);
+      
       spi->setWebsocket(c,hdl);
       spi->setUserLoginInfo(loginID,root["ReqArgs"]["BROKER_ID"].asString().c_str()
           ,root["ReqArgs"]["INVESTOR_ID"].asString().c_str(),root["ReqArgs"]["PASSWORD"].asString().c_str());
@@ -138,6 +142,9 @@ void on_message(client* c, websocketpp::connection_hdl hdl, message_ptr msg) {
     }//查询投资者持仓
     else if(root["ReqType"].asString() == "ReqQryInvestorPosition"){
       spi->ReqQryInvestorPosition(root);
+    }//请求查询合约
+    else if(root["ReqType"].asString() == "ReqQryInstrument"){
+      spi->ReqQryInstrument(root);
     }
 
 
