@@ -272,6 +272,27 @@ void CTraderSpi::ReqQryInstrument(Json::Value root)
  std::cout  <<getCurrentTime()<< "ReqQryInstrument: " << ((iResult == 0) ? "Success" : "Fail") << endl;
 }
 
+void CTraderSpi::ReqQryOrder(Json::Value root)
+{
+ CThostFtdcQryTradeField req;
+ memset(&req, 0, sizeof(req));
+ strcpy(req.BrokerID, BROKER_ID);
+ strcpy(req.InvestorID, INVESTOR_ID);
+ int iResult = t_pUserApi->ReqQryOrder(&req,  ++iRequestID);
+ std::cout  <<getCurrentTime()<< "ReqQryOrder: " << ((iResult == 0) ? "Success" : "Fail") << endl;
+}
+
+void CTraderSpi::ReqQryTrade(Json::Value root)
+{
+ CThostFtdcQryTradeField req;
+ memset(&req, 0, sizeof(req));
+ strcpy(req.BrokerID, BROKER_ID);
+ strcpy(req.InvestorID, INVESTOR_ID);
+ int iResult = t_pUserApi->ReqQryTrade(&req,  ++iRequestID);
+ std::cout  <<getCurrentTime()<< "ReqQryTrade: " << ((iResult == 0) ? "Success" : "Fail") << endl;
+}
+
+
 
 //中文需要先转utf-8
 //

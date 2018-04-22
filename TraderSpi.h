@@ -103,6 +103,13 @@ public:
 	void ReqOrderInsert(Json::Value root);
 	///报单操作请求
 	void ReqOrderAction(Json::Value root);
+	//请求查询报单
+    void ReqQryOrder(Json::Value root);
+	//virtual int ReqQryOrder(CThostFtdcQryOrderField *pQryOrder, int nRequestID) = 0;
+
+	///请求查询成交
+	void ReqQryTrade(Json::Value root);
+	//virtual int ReqQryTrade(CThostFtdcQryTradeField *pQryTrade, int nRequestID) = 0;
 
 	// 是否收到成功的响应
 	bool IsErrorRspInfo(CThostFtdcRspInfoField *pRspInfo);
